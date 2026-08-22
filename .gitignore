@@ -1,0 +1,14 @@
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE configuration folders
+.vscode/
+.zed/
+.idea/
+
+# Local backup / temporary files
+*.tmp
+*.bak
+*~

@@ -1,0 +1,59 @@
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF6F0;
+}
+::-webkit-scrollbar-thumb {
+  background: #F49FAB;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #D96576;
+}
+
+/* Glassmorphism Classes */
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+}
+.glass-nav {
+  background: rgba(250, 246, 240, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(231, 136, 149, 0.15);
+}
+
+/* Floating Heart Canvas */
+#heart-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 40;
+}
+
+/* Equalizer Bar Animation */
+.equalizer-bar {
+  animation: bounceEqualizer 0.8s ease-in-out infinite alternate;
+}
+@keyframes bounceEqualizer {
+  0% { height: 3px; }
+  100% { height: 14px; }
+}
+
+/* READ-ONLY / PREVIEW MODE LOCKDOWN STYLES */
+body.readonly-mode .admin-only,
+body.readonly-mode [title="Delete dream"],
+body.readonly-mode [title="Delete memory"],
+body.readonly-mode [title="Customize photo & love note"],
+body.readonly-mode [title="Download updated source code with all current changes saved"],
+body.readonly-mode button[onclick*="openAdd"],
+body.readonly-mode button[onclick*="openCustomize"] {
+  display: none !important;
+}
