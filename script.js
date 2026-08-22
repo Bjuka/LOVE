@@ -78,7 +78,7 @@ function scrollToSection(id) {
 
 // --- 2. CUSTOMIZABLE HERO ---
 const defaultHeroConfig = {
-  image: "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=800&q=80",
+  image: "cover.jpg",
   badge: "My Favorite View",
   quote: "No matter where life takes us, my heart will always beat for you."
 };
@@ -320,43 +320,19 @@ function closeHugModal() {
 const initialDefaultDreams = [
   {
     id: 'dream-1',
-    title: 'Our Cozy Dream House',
-    emoji: '🏡',
-    tag: 'Our Home',
-    desc: 'Warm wooden floors, sunlit windows, a cozy kitchen for our cooking adventures, and fairy lights everywhere.',
-    image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=700&q=80'
+    title: 'My Second Love',
+    emoji: '❤️',
+    tag: 'Our little cuteness',
+    desc: 'Our daughter will look like this and we will be the best parents anyone can ever wish for ❤️❤️',
+    image: 'babieee.jpg'
   },
   {
     id: 'dream-2',
-    title: 'Our Sweet Baby',
-    emoji: '👶',
-    tag: 'Our Family',
-    desc: 'Building our little family together with unconditional love, laughter, and endless cuddles.',
-    image: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&w=700&q=80'
-  },
-  {
-    id: 'dream-3',
-    title: 'Our Playful Dog',
-    emoji: '🐕',
-    tag: 'Best Buddy',
-    desc: 'A goofy, happy dog running around our backyard and joining all our outdoor adventures.',
-    image: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=700&q=80'
-  },
-  {
-    id: 'dream-4',
-    title: 'Our Cozy Cat',
-    emoji: '🐱',
-    tag: 'Purr Machine',
-    desc: 'A gentle kitty purring on our laps while we read books and watch movies on Sunday mornings.',
-    image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=700&q=80'
-  },
-  {
-    id: 'dream-5',
-    title: 'A Horse in the Meadow',
-    emoji: '🐴',
-    tag: 'Horse Time',
-    desc: 'Having our very own majestic horse to ride across green pastures and take care of together.',
-    image: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=700&q=80'
+    title: 'Together and Forever',
+    emoji: '🌻🌻',
+    tag: 'Our Goal',
+    desc: 'No matter what happens, we stay together, we fight together and we fix together cuz you\'re my wifey and i love you the most. just like this💕',
+    image: 'dream-2.jpg'
   }
 ];
 
@@ -523,11 +499,27 @@ function handleCreateDream(e) {
 const initialDefaultMemories = [
   {
     id: 'mem-1',
-    title: 'Our First Special Day',
-    date: '2024-05-12',
-    tag: 'Milestone 💍',
-    image: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=700&q=80',
-    caption: 'The day that changed everything for the better.'
+    title: 'What makes me happy?',
+    date: '2026-03-13',
+    tag: 'MINEEE 💍',
+    image: 'memory1.jpg',
+    caption: '"Every moment with you makes me feel special beacause you feel like a long lost part of me which makes me complete 💕💕"'
+  },
+  {
+    id: 'mem-2',
+    title: 'My Cute Babieeee',
+    date: '2025-12-12',
+    tag: 'Special dayyy 🍷',
+    image: 'memory2.jpg',
+    caption: '"Whenever im with you, im never alone. you make me feel so happy like im some celebrity but tbh, i just want to be YOURS ❤️"'
+  },
+  {
+    id: 'mem-3',
+    title: 'Ummmmmah',
+    date: '2026-08-14',
+    tag: 'Goofy Moments 🤪',
+    image: 'memory3.jpg',
+    caption: '"You brings out the kid in me (idk the date😭)"'
   }
 ];
 
