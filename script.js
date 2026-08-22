@@ -332,7 +332,7 @@ const initialDefaultDreams = [
     emoji: '🌻🌻',
     tag: 'Our Goal',
     desc: 'No matter what happens, we stay together, we fight together and we fix together cuz you\'re my wifey and i love you the most. just like this💕',
-    image: 'dream-2.jpg'
+    image: 'dream2.jpg'
   }
 ];
 
