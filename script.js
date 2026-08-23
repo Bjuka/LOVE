@@ -1291,27 +1291,42 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==================== SANCTUARY LOCK SYSTEM ====================
-// Set your desired secret password (case-sensitive or lowercase)
-const SANCTUARY_SECRET_PASSWORD = "you_have_very_preety_eyes_and_cute_butt"; // Change this to your anniversary date or secret word
+const SANCTUARY_PASSWORD_HASH = "7ad938a2c26edc6be22bcb1c2b17e1140c40257e2e2ec052db5bcee7f66aba08"; // plaintext can work too
 
-function handleUnlockAttempt(e) {
+async function sha256(message) {
+  const msgUint8 = new TextEncoder().encode(message.trim());
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function handleUnlockAttempt(e) {
   if (e) e.preventDefault();
   
   const input = document.getElementById('gate-password-input');
   const errorMsg = document.getElementById('gate-error-msg');
   const card = document.getElementById('gate-card');
   const gate = document.getElementById('sanctuary-gate');
+  const skeleton = document.getElementById('skeleton-backdrop');
 
-  if (input.value.trim() === SANCTUARY_SECRET_PASSWORD) {
-    // Correct Password
+  const inputHash = await sha256(input.value);
+
+  if (inputHash === SANCTUARY_PASSWORD_HASH || input.value.trim() === SANCTUARY_PASSWORD_HASH) {
     sessionStorage.setItem('sanctuary_unlocked', 'true');
     errorMsg.classList.add('hidden');
     
-    // Unlock Animation
-    gate.classList.add('opacity-0', 'pointer-events-none', 'scale-105');
+    // Unlock real content & unfreeze scrolling
+    document.body.classList.remove('gate-locked');
+    gate.classList.add('opacity-0', 'pointer-events-none');
+    if (skeleton) skeleton.classList.add('opacity-0');
+    
+    setTimeout(() => {
+      gate.style.display = 'none';
+      if (skeleton) skeleton.style.display = 'none';
+    }, 700);
+
     if (typeof triggerLoveShower === 'function') triggerLoveShower();
   } else {
-    // Wrong Password
     errorMsg.classList.remove('hidden');
     card.classList.remove('shake-gate');
     void card.offsetWidth; // Force CSS reflow
@@ -1321,12 +1336,17 @@ function handleUnlockAttempt(e) {
   }
 }
 
-// Auto-check on page load
+// Check lock state on initial load
 document.addEventListener('DOMContentLoaded', () => {
   const isUnlocked = sessionStorage.getItem('sanctuary_unlocked');
   const gate = document.getElementById('sanctuary-gate');
+  const skeleton = document.getElementById('skeleton-backdrop');
   
   if (isUnlocked === 'true' && gate) {
-    gate.classList.add('opacity-0', 'pointer-events-none');
+    gate.style.display = 'none';
+    if (skeleton) skeleton.style.display = 'none';
+    document.body.classList.remove('gate-locked');
+  } else {
+    document.body.classList.add('gate-locked');
   }
 });
