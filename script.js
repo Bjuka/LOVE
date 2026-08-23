@@ -676,7 +676,7 @@ const initialDefaultSongs = [
     id: 'song-1',
     title: 'Accidently in LOVE',
     artist: 'Counting Crows',
-    src: 'Accidently in LOVE.mp3'
+    src: 'Accidently in Love.mp3'
   },
   {
     id: 'song-2',
