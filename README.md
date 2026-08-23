@@ -17,6 +17,7 @@ An aesthetic, interactive digital sanctuary and memory keepsake built with love.
   - **Custom Playlist Queue:** Dedicated player for personal `.mp3` tracks with progress scrubbing and volume control.
 - **🔗 Read-Only Snapshot Link Generator:** Generates a clean URL query snapshot that hides all edit and delete buttons for sharing.
 - **💖 Particle Bursts:** Interactive floating heart canvas and confetti effects on tap.
+- **🔒 Lockscreen:** Password lockscreen overlay.
 
 ---
 
