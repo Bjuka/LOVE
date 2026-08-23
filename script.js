@@ -1289,3 +1289,44 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMemories();
   }
 });
+
+// ==================== SANCTUARY LOCK SYSTEM ====================
+// Set your desired secret password (case-sensitive or lowercase)
+const SANCTUARY_SECRET_PASSWORD = "you_have_very_preety_eyes_and_cute_butt"; // Change this to your anniversary date or secret word
+
+function handleUnlockAttempt(e) {
+  if (e) e.preventDefault();
+  
+  const input = document.getElementById('gate-password-input');
+  const errorMsg = document.getElementById('gate-error-msg');
+  const card = document.getElementById('gate-card');
+  const gate = document.getElementById('sanctuary-gate');
+
+  if (input.value.trim() === SANCTUARY_SECRET_PASSWORD) {
+    // Correct Password
+    sessionStorage.setItem('sanctuary_unlocked', 'true');
+    errorMsg.classList.add('hidden');
+    
+    // Unlock Animation
+    gate.classList.add('opacity-0', 'pointer-events-none', 'scale-105');
+    if (typeof triggerLoveShower === 'function') triggerLoveShower();
+  } else {
+    // Wrong Password
+    errorMsg.classList.remove('hidden');
+    card.classList.remove('shake-gate');
+    void card.offsetWidth; // Force CSS reflow
+    card.classList.add('shake-gate');
+    input.value = '';
+    input.focus();
+  }
+}
+
+// Auto-check on page load
+document.addEventListener('DOMContentLoaded', () => {
+  const isUnlocked = sessionStorage.getItem('sanctuary_unlocked');
+  const gate = document.getElementById('sanctuary-gate');
+  
+  if (isUnlocked === 'true' && gate) {
+    gate.classList.add('opacity-0', 'pointer-events-none');
+  }
+});
