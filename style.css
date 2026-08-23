@@ -68,3 +68,19 @@ body.readonly-mode button[onclick*="openCustomize"] {
 .shake-gate {
   animation: gateShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
 }
+
+/* While locked: disable scrolling and completely hide real content */
+body.gate-locked {
+  overflow: hidden !important;
+  height: 100vh !important;
+  touch-action: none;
+}
+
+body.gate-locked #app,
+body.gate-locked header,
+body.gate-locked main,
+body.gate-locked nav,
+body.gate-locked footer {
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
