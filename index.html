@@ -76,6 +76,40 @@
 
 <body class="bg-cream-100 text-rosewood font-sans antialiased selection:bg-blush-200 selection:text-blush-600 min-h-screen relative overflow-x-hidden">
 
+<!-- === SANCTUARY PASSCODE GATEWAY === -->
+<div id="sanctuary-gate" class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#FAF7F2]/95 backdrop-blur-xl transition-all duration-700">
+  <div id="gate-card" class="w-full max-w-sm mx-4 bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-blush-200 shadow-2xl shadow-blush-500/10 text-center relative overflow-hidden transition-all">
+    <div class="w-16 h-16 bg-gradient-to-tr from-blush-200 to-blush-100 rounded-2xl flex items-center justify-center mx-auto mb-5 text-blush-600 shadow-inner">
+      <i data-lucide="lock" class="w-7 h-7"></i>
+    </div>
+    
+    <h2 class="text-2xl font-serif font-bold text-rosewood mb-1">Our Sanctuary</h2>
+    <p class="text-xs text-gray-500 mb-6 font-sans">Enter our secret password to enter 🗝️✨</p>
+
+    <form onsubmit="handleUnlockAttempt(event)" class="space-y-4">
+      <div class="relative">
+        <input 
+          type="password" 
+          id="gate-password-input" 
+          placeholder="Secret Passcode..." 
+          autocomplete="off"
+          class="w-full px-4 py-3 text-center text-sm tracking-widest rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blush-400 focus:border-transparent transition shadow-inner"
+          required
+        />
+      </div>
+
+      <p id="gate-error-msg" class="text-xs text-red-500 font-medium hidden">Incorrect passcode, try again sweetie ❤️</p>
+
+      <button 
+        type="submit" 
+        class="w-full py-3 px-6 bg-gradient-to-r from-blush-500 to-blush-600 hover:from-blush-600 hover:to-blush-700 text-white text-sm font-semibold rounded-2xl shadow-lg shadow-blush-500/30 transition transform active:scale-95 flex items-center justify-center gap-2">
+        <span>Unlock</span>
+        <i data-lucide="key-round" class="w-4 h-4"></i>
+      </button>
+    </form>
+  </div>
+</div>
+
   <!-- Floating Heart Canvas for Click Bursts -->
   <canvas id="heart-canvas"></canvas>
 
