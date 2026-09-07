@@ -49,7 +49,7 @@ An aesthetic, interactive digital sanctuary and memory keepsake built with love.
 
 1. Clone or download the repository:
    ```bash
-   git clone [https://github.com/](https://github.com/)<your-username>/<repo-name>.git
+   git clone https://github.com/Bjuka/LOVE
    ```
 2. Start a local server:
    ```bash
