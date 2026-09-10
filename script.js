@@ -1,14 +1,14 @@
 // ==================== SUPABASE CONFIGURATION ====================
-const SUPABASE_URL = "https://idlhbjoxxskzmvzrhjpb.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_0NiaQQkwoIcttLrvBEzAqg_t5vaBgAY"; 
+var SUPABASE_URL = "https://idlhbjoxxskzmvzrhjpb.supabase.co";
+var SUPABASE_ANON_KEY = "sb_publishable_0NiaQQkwoIcttLrvBEzAqg_t5vaBgAY"; 
 
-// Using supabaseClient to prevent global collision with window.supabase from CDN
-const supabaseClient = window.supabase 
+window.supabaseClient = window.supabase 
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
+var supabaseClient = window.supabaseClient;
 
 // ==================== SANCTUARY PASSCODE SECURITY ====================
-const SANCTUARY_PASSWORD_HASH = "7ad938a2c26edc6be22bcb1c2b17e1140c40257e2e2ec052db5bcee7f66aba08";
+var SANCTUARY_PASSWORD_HASH = "7ad938a2c26edc6be22bcb1c2b17e1140c40257e2e2ec052db5bcee7f66aba08";
 
 async function sha256(message) {
   const msgUint8 = new TextEncoder().encode(message.trim());
@@ -88,23 +88,16 @@ setInterval(() => {
   }
 }, 2800);
 
-const liveDateEl = document.getElementById('live-date');
-if (liveDateEl) {
-  liveDateEl.textContent = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function scrollToSection(id) {
-  const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: 'smooth' });
-}
-
-// --- 2. HERO / FAVORITE VIEW DISPLAY (DYNAMIC STACKABLE ENGINE) ---
+// --- 2. HERO / FAVORITE VIEW DISPLAY (DYNAMIC STACK & CUSTOM SUBTAGS) ---
 let favoriteViews = [];
 let currentHeroIndex = 0;
 
 const defaultHeroFallback = {
   image_url: "cover.jpg",
   badge: "My Favorite View",
+  date: "Today",
+  sub_tag: "",
+  floating_badge: "",
   quote: "No matter where life takes us, my heart will always beat for you."
 };
 
@@ -126,7 +119,6 @@ async function loadHeroCustom() {
     }
   }
 
-  // Fallback to single static view if database is empty or offline
   favoriteViews = [defaultHeroFallback];
   renderHeroView(0);
 }
@@ -138,7 +130,11 @@ function renderHeroView(index) {
 
   const heroImg = document.getElementById('hero-img');
   const heroBadge = document.getElementById('hero-badge');
+  const heroDate = document.getElementById('hero-date');
+  const heroSubtag = document.getElementById('hero-subtag');
   const heroQuote = document.getElementById('hero-quote');
+  const heroFloatingPill = document.getElementById('hero-floating-pill-container');
+  const heroFloatingBadge = document.getElementById('hero-floating-badge');
   const stackControls = document.getElementById('hero-stack-controls');
   const stackCounter = document.getElementById('hero-stack-counter');
 
@@ -150,7 +146,31 @@ function renderHeroView(index) {
     }, 150);
   }
 
-  if (heroBadge) heroBadge.textContent = view.badge || defaultHeroFallback.badge;
+  if (heroBadge) heroBadge.textContent = view.badge || 'My Favorite View';
+  if (heroDate) heroDate.textContent = view.date || 'Today';
+
+  // Custom Emoji Sub-tag (Pure user input, no hardcoded fallbacks)
+  if (heroSubtag) {
+    if (view.sub_tag && view.sub_tag.trim() !== '') {
+      heroSubtag.textContent = view.sub_tag;
+      heroSubtag.classList.remove('hidden');
+    } else {
+      heroSubtag.textContent = '';
+      heroSubtag.classList.add('hidden');
+    }
+  }
+
+  // Floating Badge (Pure user input; hides cleanly if empty)
+  if (heroFloatingPill && heroFloatingBadge) {
+    if (view.floating_badge && view.floating_badge.trim() !== '') {
+      heroFloatingBadge.textContent = view.floating_badge;
+      heroFloatingPill.classList.remove('hidden');
+    } else {
+      heroFloatingBadge.textContent = '';
+      heroFloatingPill.classList.add('hidden');
+    }
+  }
+
   if (heroQuote) {
     heroQuote.style.opacity = '0';
     setTimeout(() => {
@@ -159,7 +179,6 @@ function renderHeroView(index) {
     }, 150);
   }
 
-  // Only show stackable counter and arrows if there are more than 1 view
   if (stackControls) {
     if (favoriteViews.length > 1) {
       stackControls.classList.remove('hidden');
@@ -182,7 +201,12 @@ function prevHeroView() {
   renderHeroView(currentHeroIndex - 1);
 }
 
-// --- 3. DREAMS BOARD (FETCH ONLY) ---
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+// --- 3. DREAMS BOARD ---
 const fallbackDreams = [
   {
     id: 'dream-1',
@@ -263,7 +287,7 @@ function toggleDreamHeart(btn) {
   }
 }
 
-// --- 4. MEMORIES BOX (FETCH ONLY) ---
+// --- 4. MEMORIES BOX ---
 const fallbackMemories = [
   {
     title: 'What makes me happy?',
