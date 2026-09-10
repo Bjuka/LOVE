@@ -1,4 +1,4 @@
-// supabase config
+
 const SUPABASE_URL = "https://idlhbjoxxskzmvzrhjpb.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_0NiaQQkwoIcttLrvBEzAqg_t5vaBgAY"; 
 const supabase = (window.supabase && SUPABASE_ANON_KEY !== "sb_publishable_0NiaQQkwoIcttLrvBEzAqg_t5vaBgAY")
