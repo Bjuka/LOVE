@@ -10,6 +10,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+      
   <!-- Tailwind CSS CDN & Config -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -47,7 +50,6 @@
           },
           animation: {
             'float-slow': 'float 6s ease-in-out infinite',
-            'float-fast': 'float 3.5s ease-in-out infinite',
             'pulse-subtle': 'pulseSlow 4s ease-in-out infinite',
             'spin-slow': 'spin 12s linear infinite',
           },
@@ -66,88 +68,80 @@
     }
   </script>
 
-  <!-- Lucide Icons & Canvas Confetti CDNs -->
+  <!-- Lucide Icons & Canvas Confetti -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
-  <!-- Custom Stylesheet -->
   <link rel="stylesheet" href="style.css" />
 </head>
 
-<body class="bg-cream-100 text-rosewood font-sans antialiased selection:bg-blush-200 selection:text-blush-600 min-h-screen relative overflow-x-hidden">
+<body class="bg-cream-100 text-rosewood font-sans antialiased selection:bg-blush-200 selection:text-blush-600 min-h-screen relative overflow-x-hidden gate-locked">
 
-<!-- === SKELETON WIREFRAME (Visible only when locked) === -->
-<div id="skeleton-backdrop" class="fixed inset-0 z-[9998] p-6 max-w-4xl mx-auto space-y-8 pointer-events-none overflow-hidden select-none">
-  <!-- Fake Hero Skeleton -->
-  <div class="h-80 w-full bg-stone-200/70 rounded-3xl animate-pulse flex flex-col justify-end p-8 space-y-3">
-    <div class="h-6 w-32 bg-stone-300/80 rounded-full"></div>
-    <div class="h-8 w-3/4 bg-stone-300/80 rounded-xl"></div>
-    <div class="h-4 w-1/2 bg-stone-300/80 rounded-lg"></div>
-  </div>
-  <!-- Fake Cards Grid Skeleton -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div class="h-48 bg-stone-200/60 rounded-3xl animate-pulse p-6 space-y-4">
-      <div class="h-6 w-1/3 bg-stone-300/70 rounded-full"></div>
-      <div class="h-4 w-full bg-stone-300/70 rounded-lg"></div>
-      <div class="h-4 w-2/3 bg-stone-300/70 rounded-lg"></div>
+  <!-- Skeleton Wireframe Mockup -->
+  <div id="skeleton-backdrop" class="fixed inset-0 z-[9998] p-6 max-w-4xl mx-auto space-y-8 pointer-events-none overflow-hidden select-none">
+    <div class="h-80 w-full bg-stone-200/70 rounded-3xl animate-pulse flex flex-col justify-end p-8 space-y-3">
+      <div class="h-6 w-32 bg-stone-300/80 rounded-full"></div>
+      <div class="h-8 w-3/4 bg-stone-300/80 rounded-xl"></div>
+      <div class="h-4 w-1/2 bg-stone-300/80 rounded-lg"></div>
     </div>
-    <div class="h-48 bg-stone-200/60 rounded-3xl animate-pulse p-6 space-y-4">
-      <div class="h-6 w-1/3 bg-stone-300/70 rounded-full"></div>
-      <div class="h-4 w-full bg-stone-300/70 rounded-lg"></div>
-      <div class="h-4 w-2/3 bg-stone-300/70 rounded-lg"></div>
-    </div>
-  </div>
-</div>
-
-<!-- === FROSTED PASSCODE GATEWAY === -->
-<div id="sanctuary-gate" class="fixed inset-0 z-[99999] flex items-center justify-center bg-[#FAF7F2]/75 backdrop-blur-2xl transition-all duration-700">
-  <div id="gate-card" class="w-full max-w-sm mx-4 bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-blush-200/60 shadow-2xl shadow-blush-500/10 text-center relative overflow-hidden transition-all">
-    <div class="w-16 h-16 bg-gradient-to-tr from-blush-200 to-blush-100 rounded-2xl flex items-center justify-center mx-auto mb-5 text-blush-600 shadow-inner">
-      <i data-lucide="lock" class="w-7 h-7"></i>
-    </div>
-    
-    <h2 class="text-2xl font-serif font-bold text-rosewood mb-1">Our Sanctuary</h2>
-    <p class="text-xs text-gray-500 mb-6 font-sans">Enter our secret password to enter 🗝️✨</p>
-
-    <form onsubmit="handleUnlockAttempt(event)" class="space-y-4">
-      <div class="relative">
-        <input 
-          type="password" 
-          id="gate-password-input" 
-          placeholder="Secret Passcode..." 
-          autocomplete="off"
-          class="w-full px-4 py-3 text-center text-sm tracking-widest rounded-2xl border border-gray-200 bg-white/90 focus:outline-none focus:ring-2 focus:ring-blush-400 focus:border-transparent transition shadow-inner"
-          required
-        />
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="h-48 bg-stone-200/60 rounded-3xl animate-pulse p-6 space-y-4">
+        <div class="h-6 w-1/3 bg-stone-300/70 rounded-full"></div>
+        <div class="h-4 w-full bg-stone-300/70 rounded-lg"></div>
       </div>
-
-      <p id="gate-error-msg" class="text-xs text-red-500 font-medium hidden">Incorrect passcode, try again sweetie ❤️</p>
-
-      <button 
-        type="submit" 
-        class="w-full py-3 px-6 bg-gradient-to-r from-blush-500 to-blush-600 hover:from-blush-600 hover:to-blush-700 text-white text-sm font-semibold rounded-2xl shadow-lg shadow-blush-500/30 transition transform active:scale-95 flex items-center justify-center gap-2">
-        <span>Unlock</span>
-        <i data-lucide="key-round" class="w-4 h-4"></i>
-      </button>
-    </form>
+      <div class="h-48 bg-stone-200/60 rounded-3xl animate-pulse p-6 space-y-4">
+        <div class="h-6 w-1/3 bg-stone-300/70 rounded-full"></div>
+        <div class="h-4 w-full bg-stone-300/70 rounded-lg"></div>
+      </div>
+    </div>
   </div>
-</div>
 
-  <!-- Floating Heart Canvas for Click Bursts -->
+  <!-- Frosted Passcode Screen -->
+  <div id="sanctuary-gate" class="fixed inset-0 z-[99999] flex items-center justify-center bg-[#FAF7F2]/80 backdrop-blur-2xl transition-all duration-700">
+    <div id="gate-card" class="w-full max-w-sm mx-4 bg-white/90 backdrop-blur-md p-8 rounded-3xl border border-blush-200/60 shadow-2xl shadow-blush-500/10 text-center relative overflow-hidden transition-all">
+      <div class="w-16 h-16 bg-gradient-to-tr from-blush-200 to-blush-100 rounded-2xl flex items-center justify-center mx-auto mb-5 text-blush-600 shadow-inner">
+        <i data-lucide="lock" class="w-7 h-7"></i>
+      </div>
+      
+      <h2 class="text-2xl font-serif font-bold text-rosewood mb-1">Our Sanctuary</h2>
+      <p class="text-xs text-gray-500 mb-6 font-sans">Enter our secret password to enter 🗝️✨</p>
+
+      <form onsubmit="handleUnlockAttempt(event)" class="space-y-4">
+        <div class="relative">
+          <input 
+            type="password" 
+            id="gate-password-input" 
+            placeholder="Secret Passcode..." 
+            autocomplete="off"
+            class="w-full px-4 py-3 text-center text-sm tracking-widest rounded-2xl border border-gray-200 bg-white/90 focus:outline-none focus:ring-2 focus:ring-blush-400 focus:border-transparent transition shadow-inner"
+            required
+          />
+        </div>
+
+        <p id="gate-error-msg" class="text-xs text-red-500 font-medium hidden">Incorrect passcode, try again sweetie ❤️</p>
+
+        <button 
+          type="submit" 
+          class="w-full py-3 px-6 bg-gradient-to-r from-blush-500 to-blush-600 hover:from-blush-600 hover:to-blush-700 text-white text-sm font-semibold rounded-2xl shadow-lg shadow-blush-500/30 transition transform active:scale-95 flex items-center justify-center gap-2">
+          <span>Unlock</span>
+          <i data-lucide="key-round" class="w-4 h-4"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
   <canvas id="heart-canvas"></canvas>
 
-  <!-- BACKGROUND DECORATIONS -->
+  <!-- Background Glows -->
   <div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
     <div class="absolute -top-32 -left-32 w-96 h-96 bg-blush-200/40 rounded-full blur-3xl"></div>
     <div class="absolute top-1/3 -right-32 w-[30rem] h-[30rem] bg-champagne-200/50 rounded-full blur-3xl"></div>
     <div class="absolute -bottom-32 left-1/4 w-[28rem] h-[28rem] bg-blush-100/60 rounded-full blur-3xl"></div>
   </div>
 
-  <!-- NAVIGATION HEADER -->
+  <!-- Navigation -->
   <header class="sticky top-0 z-30 glass-nav transition-all duration-300">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 h-18 py-3 flex items-center justify-between">
-
-      <!-- Brand & Nickname Badge -->
       <div class="flex items-center gap-3">
         <a href="#" class="flex items-center gap-2 group">
           <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blush-400 to-champagne-300 flex items-center justify-center shadow-md shadow-blush-300/30 group-hover:scale-105 transition-transform">
@@ -159,7 +153,6 @@
           </div>
         </a>
 
-        <!-- Nickname Cycler Badge -->
         <div class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-white/80 border border-blush-200/60 rounded-full text-xs shadow-sm ml-2">
           <span class="text-gray-400">For my</span>
           <span id="nickname-badge" class="font-semibold text-blush-500 transition-all duration-300 inline-block min-w-[75px] text-center">wifey</span>
@@ -167,28 +160,13 @@
         </div>
       </div>
 
-      <!-- Action Buttons -->
       <div class="flex items-center gap-2 sm:gap-3">
-
-        <!-- CREATE LINK BUTTON (Creates read-only preview link) -->
-        <button onclick="openShareLinkModal()" title="Create a read-only preview link to share" class="admin-only flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-champagne-100 hover:bg-champagne-200 text-xs font-semibold text-rosewood transition shadow-sm active:scale-95 border border-champagne-300">
-          <i data-lucide="link-2" class="w-3.5 h-3.5 text-champagne-400"></i>
-          <span>Create Link</span>
-        </button>
-
-        <!-- Export HTML Button -->
-        <button onclick="exportUpdatedHtml()" title="Download updated source code with all current changes saved" class="admin-only hidden md:flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/90 hover:bg-white text-xs font-semibold text-rosewood transition shadow-sm active:scale-95 border border-gray-200">
-          <i data-lucide="download" class="w-3.5 h-3.5 text-gray-500"></i>
-          <span>Save HTML</span>
-        </button>
-
-        <!-- Music Hub Toggle Button -->
-        <button onclick="openMusicModal()" title="Open Cozy Music Player & Song Queue" class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/90 hover:bg-white text-xs font-medium border border-champagne-200 text-rosewood hover:text-blush-500 transition-all shadow-sm active:scale-95 group">
+        <!-- Music Hub Toggle -->
+        <button onclick="openMusicModal()" title="Open Music Player" class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/90 hover:bg-white text-xs font-medium border border-champagne-200 text-rosewood hover:text-blush-500 transition-all shadow-sm active:scale-95 group">
           <div class="w-4 h-4 flex items-center justify-center text-blush-500">
-            <i data-lucide="music" class="w-4 h-4" id="nav-music-icon"></i>
+            <i data-lucide="music" class="w-4 h-4"></i>
           </div>
           <span id="nav-music-title" class="font-semibold max-w-[100px] sm:max-w-[130px] truncate">Lofi Chimes</span>
-
           <div id="nav-audio-equalizer" class="hidden items-end gap-0.5 h-3.5 px-0.5">
             <span class="equalizer-bar w-0.5 bg-blush-400 rounded-full" style="animation-delay: 0.1s"></span>
             <span class="equalizer-bar w-0.5 bg-blush-500 rounded-full" style="animation-delay: 0.3s"></span>
@@ -196,27 +174,23 @@
           </div>
         </button>
 
-        <!-- Confetti Burst Love Button -->
         <button id="burst-love-btn" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blush-400 to-blush-500 hover:from-blush-500 hover:to-blush-600 text-white text-xs sm:text-sm font-semibold rounded-full shadow-md shadow-blush-400/30 active:scale-95 transition-all">
           <i data-lucide="sparkles" class="w-4 h-4"></i>
           <span>Send Love</span>
         </button>
       </div>
-
     </div>
   </header>
 
-  <!-- MAIN CONTAINER -->
+  <!-- Main Presentation Container -->
   <main class="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-24 space-y-16">
 
-    <!-- 1. HERO SECTION: "You Are My Whole World" -->
+    <!-- 1. Hero Section -->
     <section class="relative">
       <div class="glass-card rounded-3xl p-6 sm:p-10 md:p-12 shadow-xl shadow-blush-200/30 border border-white/90 relative overflow-hidden">
         <div class="absolute -right-20 -top-20 w-80 h-80 bg-blush-100/70 rounded-full blur-2xl pointer-events-none"></div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-
-          <!-- Left Text Content -->
           <div class="lg:col-span-7 space-y-5 text-left">
             <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blush-100/80 border border-blush-200 text-blush-600 text-xs font-semibold tracking-wide">
               <i data-lucide="heart" class="w-3.5 h-3.5 fill-blush-500"></i>
@@ -231,7 +205,6 @@
               Every single day with you is the sweetest blessing. You are my best friend, my greatest confidante, and the woman I cannot wait to marry. Thank you for filling every corner of my life with gentle warmth, goofy laughs, and boundless happiness.
             </p>
 
-            <!-- Interactive Stats -->
             <div class="pt-2 grid grid-cols-3 gap-3 sm:gap-4 max-w-md">
               <div class="bg-white/80 p-3 rounded-2xl border border-blush-100 text-center shadow-sm">
                 <span class="block font-serif text-lg sm:text-2xl font-bold text-blush-500">365+</span>
@@ -259,23 +232,16 @@
             </div>
           </div>
 
-          <!-- Right Floating Polaroid Photo -->
           <div class="lg:col-span-5 flex justify-center">
             <div class="relative w-full max-w-sm">
-
-              <div class="bg-white p-5 rounded-3xl shadow-xl border border-blush-100 transform rotate-1 hover:rotate-0 transition-transform duration-500 space-y-4 relative group">
-
-                <button onclick="openCustomizeHeroModal()" title="Customize photo & love note" class="admin-only absolute top-7 right-7 z-20 px-2.5 py-1 rounded-full bg-white/90 hover:bg-white text-rosewood text-[11px] font-semibold flex items-center gap-1 shadow-md border border-blush-200 opacity-90 group-hover:opacity-100 transition-all hover:scale-105">
-                  <i data-lucide="pencil" class="w-3 h-3 text-blush-500"></i>
-                  <span>Customize ✨</span>
-                </button>
-
+              <div class="bg-white p-5 rounded-3xl shadow-xl border border-blush-100 transform rotate-1 hover:rotate-0 transition-transform duration-500 space-y-4">
                 <div class="relative rounded-2xl overflow-hidden aspect-[4/3] bg-blush-50 flex items-center justify-center shadow-inner">
                   <img
                     id="hero-img"
-                    src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=800&q=80"
+                    src="cover.jpg"
                     alt="My Favorite View"
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    onerror="this.src='https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=800&q=80'"
+                    class="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                   />
                   <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
                   <div class="absolute bottom-3 left-3 text-white">
@@ -299,15 +265,13 @@
               <div class="absolute -bottom-4 -left-4 bg-champagne-100 border border-champagne-300 px-3.5 py-1.5 rounded-full shadow-lg text-xs font-serif italic text-champagne-400 flex items-center gap-1.5 animate-float-slow">
                 <span>💍 Future Husband & Wife</span>
               </div>
-
             </div>
           </div>
-
         </div>
       </div>
     </section>
 
-    <!-- 2. "FOR WHEN YOU FEEL LOW" -->
+    <!-- 2. Uplifting Section -->
     <section id="uplifting-hub" class="space-y-6">
       <div class="text-center max-w-xl mx-auto space-y-2">
         <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-blush-500">
@@ -319,8 +283,6 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-        <!-- Instant Warm Hug -->
         <div class="glass-card rounded-3xl p-6 sm:p-8 flex flex-col justify-between hover:shadow-lg transition-all border border-blush-100">
           <div class="space-y-4">
             <div class="w-12 h-12 rounded-2xl bg-blush-100 flex items-center justify-center text-blush-500">
@@ -339,7 +301,6 @@
           </div>
         </div>
 
-        <!-- Affirmation Generator -->
         <div class="glass-card rounded-3xl p-6 sm:p-8 flex flex-col justify-between hover:shadow-lg transition-all border border-champagne-200">
           <div class="space-y-4">
             <div class="w-12 h-12 rounded-2xl bg-champagne-100 flex items-center justify-center text-champagne-400">
@@ -349,17 +310,15 @@
               <h3 class="font-serif text-xl font-bold text-rosewood">Draw a Wholesome Reminder 💌</h3>
               <span id="quote-number-badge" class="text-[11px] font-semibold bg-champagne-100 text-champagne-400 px-2.5 py-0.5 rounded-full">#1</span>
             </div>
-
             <div class="min-h-[110px] sm:min-h-[120px] flex items-center justify-center">
               <div id="affirmation-card" class="w-full h-full bg-white/90 rounded-2xl p-5 border border-blush-100 text-center flex flex-col justify-center items-center shadow-inner transition-all duration-500">
                 <p id="affirmation-text" class="font-serif italic text-base sm:text-lg text-rosewood transition-opacity duration-300">
                   "You are the most precious part of my life, and nothing can diminish how brilliant, strong, and capable you are."
                 </p>
-                <span id="affirmation-sub" class="text-xs font-hand text-blush-500 mt-2">— Always in your corner</span>
+                <span class="text-xs font-hand text-blush-500 mt-2">— Always in your corner</span>
               </div>
             </div>
           </div>
-
           <div class="pt-4">
             <button onclick="drawNewAffirmation()" class="w-full py-3 px-4 rounded-2xl bg-white hover:bg-cream-50 border border-champagne-300 text-rosewood font-medium text-sm flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all">
               <i data-lucide="refresh-cw" class="w-4 h-4 text-champagne-400" id="draw-icon"></i>
@@ -367,55 +326,38 @@
             </button>
           </div>
         </div>
-
       </div>
     </section>
 
-    <!-- 3. "OUR FUTURE TOGETHER" -->
+    <!-- 3. Dreams Section (Pure View) -->
     <section id="dream-board" class="space-y-6">
-      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-blush-200/60 pb-4">
-        <div>
-          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-blush-500">
-            <i data-lucide="sparkles" class="w-4 h-4"></i>
-            <span>Manifesting Our Forever</span>
-          </div>
-          <h2 class="font-serif text-2xl sm:text-3xl text-rosewood font-bold">Our Future Together</h2>
-          <p class="text-sm text-gray-600">The beautiful little life we are building piece by piece, hand in hand.</p>
+      <div class="border-b border-blush-200/60 pb-4">
+        <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-blush-500">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>Manifesting Our Forever</span>
         </div>
-
-        <button onclick="openAddDreamModal()" class="admin-only self-start sm:self-auto px-5 py-2.5 bg-gradient-to-r from-blush-400 to-blush-500 hover:from-blush-500 hover:to-blush-600 text-white rounded-2xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition shadow-md shadow-blush-300/30 active:scale-95">
-          <i data-lucide="plus-circle" class="w-4 h-4"></i>
-          <span>Add Custom Dream</span>
-        </button>
+        <h2 class="font-serif text-2xl sm:text-3xl text-rosewood font-bold">Our Future Together</h2>
+        <p class="text-sm text-gray-600">The beautiful little life we are building piece by piece, hand in hand.</p>
       </div>
 
-      <!-- Dream Board Grid -->
       <div id="dreams-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </section>
 
-    <!-- 4. "OUR MEMORY BOX" -->
+    <!-- 4. Memory Box Section (Pure View) -->
     <section id="memory-box" class="space-y-6">
-      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-blush-200/60 pb-4">
-        <div>
-          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-blush-500">
-            <i data-lucide="camera" class="w-4 h-4"></i>
-            <span>Our Keepsakes & Adventures</span>
-          </div>
-          <h2 class="font-serif text-2xl sm:text-3xl text-rosewood font-bold">Our Memory Box</h2>
-          <p class="text-sm text-gray-600">Snapshots of the moments that made me fall deeper in love with you.</p>
+      <div class="border-b border-blush-200/60 pb-4">
+        <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-blush-500">
+          <i data-lucide="camera" class="w-4 h-4"></i>
+          <span>Our Keepsakes & Adventures</span>
         </div>
-
-        <button onclick="openAddMemoryModal()" class="admin-only self-start sm:self-auto px-5 py-2.5 bg-gradient-to-r from-blush-400 to-blush-500 hover:from-blush-500 hover:to-blush-600 text-white rounded-2xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition shadow-md shadow-blush-300/30 active:scale-95">
-          <i data-lucide="image-plus" class="w-4 h-4"></i>
-          <span>Add A New Memory</span>
-        </button>
+        <h2 class="font-serif text-2xl sm:text-3xl text-rosewood font-bold">Our Memory Box</h2>
+        <p class="text-sm text-gray-600">Snapshots of the moments that made me fall deeper in love with you.</p>
       </div>
 
-      <!-- Memory Gallery Grid -->
       <div id="memory-gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
     </section>
 
-    <!-- ROMANTIC LOVE LETTER FOOTER CARD -->
+    <!-- Love Letter Footer -->
     <section class="glass-card rounded-3xl p-8 sm:p-12 text-center max-w-3xl mx-auto space-y-4 border border-blush-200 relative overflow-hidden">
       <div class="w-12 h-12 mx-auto rounded-full bg-blush-100 flex items-center justify-center text-blush-500 mb-2">
         <i data-lucide="infinity" class="w-6 h-6"></i>
@@ -424,68 +366,48 @@
       <p class="text-sm text-gray-600 font-light leading-relaxed max-w-xl mx-auto">
         No matter how fast the world moves, this little sanctuary will always be here to remind you how endlessly cherished, valued, and adored you are.
       </p>
-      
       <div class="pt-3 font-hand text-3xl sm:text-4xl text-blush-500">
         Your ullu who loves you the most and your cute butt ❤️
-      </div>
-
-      <!-- FOOTER CREATE SHARE LINK BUTTON -->
-      <div class="pt-4 flex justify-center admin-only">
-        <button onclick="openShareLinkModal()" class="px-5 py-2.5 rounded-full bg-champagne-100 hover:bg-champagne-200 text-rosewood border border-champagne-300 text-xs font-semibold shadow-sm active:scale-95 transition flex items-center gap-2">
-          <i data-lucide="share-2" class="w-4 h-4 text-champagne-400"></i>
-          <span>Create Preview / Share Link 🔗</span>
-        </button>
       </div>
     </section>
 
   </main>
 
-  <!-- ==================== MODALS ==================== -->
+  <!-- Hug Modal -->
+  <div id="hug-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-rosewood/40 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
+    <div class="glass-card bg-white/95 rounded-3xl max-w-md w-full p-6 sm:p-8 text-center space-y-6 shadow-2xl border border-blush-200 transform scale-95 transition-all duration-300 relative overflow-hidden" id="hug-modal-content">
+      <button onclick="closeHugModal()" class="absolute top-4 right-4 text-gray-400 hover:text-rosewood p-1.5 rounded-full hover:bg-gray-100 transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
 
-  <!-- 0. CREATE SHARE LINK MODAL -->
-  <div id="share-link-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-rosewood/40 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
-    <div class="glass-card bg-white/95 rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-5 shadow-2xl border border-blush-200 transform scale-95 transition-all duration-300" id="share-link-content">
-      <div class="flex items-center justify-between border-b border-blush-100 pb-3">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-xl bg-champagne-100 flex items-center justify-center text-champagne-400">
-            <i data-lucide="link-2" class="w-5 h-5"></i>
-          </div>
-          <div>
-            <h3 class="font-serif text-lg font-bold text-rosewood">Share Sanctuary Link</h3>
-            <span class="text-[11px] text-gray-500">Read-Only Preview for Her</span>
-          </div>
+      <div class="relative w-28 h-28 mx-auto flex items-center justify-center">
+        <div class="absolute inset-0 rounded-full bg-blush-200/60 animate-ping opacity-75"></div>
+        <div class="absolute inset-2 rounded-full bg-blush-300/40 animate-pulse"></div>
+        <div class="relative w-20 h-20 rounded-full bg-gradient-to-tr from-blush-400 to-blush-500 flex items-center justify-center text-white shadow-lg shadow-blush-400/40 animate-pulse-subtle">
+          <i data-lucide="heart" class="w-10 h-10 fill-white"></i>
         </div>
-        <button onclick="closeShareLinkModal()" class="text-gray-400 hover:text-rosewood p-1">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
       </div>
 
-      <div class="space-y-3 text-left">
-        <p class="text-xs text-gray-600 leading-relaxed">
-          This link creates a locked, read-only view of your customized app with all your pictures, dreams, and memories. 
-          <span class="font-semibold text-rosewood">No edit or delete buttons will be visible to her.</span>
+      <div class="space-y-2">
+        <span class="text-xs uppercase font-bold tracking-widest text-blush-500">Breathe in... and breathe out</span>
+        <h3 class="font-serif text-2xl font-bold text-rosewood">You are wrapped in my love.</h3>
+        <p class="text-xs sm:text-sm text-gray-600 leading-relaxed pt-1">
+          Close your eyes for three seconds. Imagine my arms around you, holding you tight and safe. Whatever is weighing on your heart right now, you don't have to carry it alone. I am always right here.
         </p>
-
-        <div class="space-y-1.5">
-          <label class="block text-[11px] font-bold text-gray-700">Preview URL:</label>
-          <div class="flex gap-2">
-            <input type="text" id="share-link-input" readonly class="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-cream-50 font-mono text-gray-700 focus:outline-none select-all" />
-            <button onclick="copyGeneratedShareLink()" id="copy-link-btn" class="px-4 py-2 bg-blush-500 hover:bg-blush-600 text-white text-xs font-semibold rounded-xl shadow-sm transition whitespace-nowrap">
-              Copy
-            </button>
-          </div>
-        </div>
       </div>
 
-      <div class="pt-2 flex justify-end">
-        <button onclick="closeShareLinkModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold transition">
-          Done
-        </button>
+      <div class="bg-cream-50 p-4 rounded-2xl border border-champagne-200 text-rosewood/80 font-hand text-xl">
+        "I love you in all your moods, on easy days and hard days alike."
       </div>
+
+      <button onclick="closeHugModal(); triggerLoveShower();" class="w-full py-3 rounded-2xl bg-blush-500 hover:bg-blush-600 text-white font-semibold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2">
+        <i data-lucide="heart" class="w-4 h-4 fill-white"></i>
+        <span>I Feel Warmer Now</span>
+      </button>
     </div>
   </div>
 
-  <!-- 1. MUSIC PLAYER MODAL -->
+  <!-- Music Modal (View & Listen Only) -->
   <div id="music-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-rosewood/40 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
     <div class="glass-card bg-white/95 rounded-3xl max-w-lg w-full p-6 sm:p-7 space-y-5 shadow-2xl border border-blush-200 transform scale-95 transition-all duration-300 max-h-[92vh] overflow-y-auto" id="music-modal-content">
       <div class="flex items-center justify-between border-b border-blush-100 pb-3">
@@ -510,7 +432,7 @@
         </button>
         <button id="mode-queue-tab" onclick="switchAudioMode('queue')" class="flex-1 py-2 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 text-gray-600 hover:text-rosewood">
           <i data-lucide="list-music" class="w-3.5 h-3.5"></i>
-          <span>Custom Queue (<span id="queue-count-badge">0</span>)</span>
+          <span>Playlist (<span id="queue-count-badge">0</span>)</span>
         </button>
       </div>
 
@@ -553,227 +475,12 @@
       </div>
 
       <div id="queue-view-container" class="space-y-3 hidden">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold uppercase tracking-wider text-rosewood">Songs in Playlist</span>
-          <button onclick="toggleAddSongForm()" class="admin-only text-xs font-semibold text-blush-600 hover:text-blush-700 flex items-center gap-1">
-            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-            <span>Add New Song</span>
-          </button>
-        </div>
-
-        <div id="add-song-form" class="bg-cream-50 p-4 rounded-2xl border border-champagne-200 space-y-3 hidden admin-only">
-          <h5 class="text-xs font-bold text-rosewood">Add Song to Sanctuary Queue 🎶</h5>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" id="song-title-input" placeholder="Song Title" class="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:ring-1 focus:ring-blush-400 focus:outline-none" />
-            <input type="text" id="song-artist-input" placeholder="Artist" class="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:ring-1 focus:ring-blush-400 focus:outline-none" />
-          </div>
-          <div class="space-y-1 text-left">
-            <label class="block text-[11px] font-medium text-gray-600">Select Audio File or Paste Audio URL</label>
-            <input type="file" id="song-file-input" accept="audio/*" class="text-xs file:mr-2 file:py-1.5 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-blush-100 file:text-blush-600 hover:file:bg-blush-200 cursor-pointer w-full text-gray-500" />
-            <input type="url" id="song-url-input" placeholder="https://.../audio.mp3" class="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 bg-white focus:ring-1 focus:ring-blush-400 focus:outline-none mt-1" />
-          </div>
-          <div class="flex gap-2 pt-1">
-            <button type="button" onclick="toggleAddSongForm()" class="px-3 py-1.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-[11px] font-semibold text-gray-700 transition">Cancel</button>
-            <button type="button" onclick="handleAddSongToQueue()" class="flex-1 py-1.5 rounded-xl bg-blush-500 hover:bg-blush-600 text-white text-xs font-semibold shadow-sm transition">Add to Queue ✨</button>
-          </div>
-        </div>
-
+        <span class="text-xs font-bold uppercase tracking-wider text-rosewood">Songs in Playlist</span>
         <div id="queue-list" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
       </div>
     </div>
   </div>
 
-  <!-- 2. CUSTOMIZE HERO MODAL -->
-  <div id="custom-hero-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-rosewood/40 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
-    <div class="glass-card bg-white/95 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-blush-200 transform scale-95 transition-all duration-300 max-h-[90vh] overflow-y-auto" id="custom-hero-content">
-      <div class="flex items-center justify-between">
-        <div>
-          <h3 class="font-serif text-xl font-bold text-rosewood">Customize "My Favorite View" 📸✨</h3>
-          <p class="text-xs text-gray-500">Update the hero picture, badge title, or romantic quote.</p>
-        </div>
-        <button onclick="closeCustomizeHeroModal()" class="text-gray-400 hover:text-rosewood p-1">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <form id="hero-custom-form" onsubmit="handleSaveHeroCustom(event)" class="space-y-4 text-left">
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Badge Title</label>
-          <input type="text" id="hero-badge-input" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blush-400 bg-white" />
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Handwritten Love Note / Quote</label>
-          <textarea id="hero-quote-input" rows="3" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blush-400 bg-white resize-none"></textarea>
-        </div>
-        <div class="space-y-2">
-          <label class="block text-xs font-medium text-gray-700">Hero Photo (Upload or Enter URL)</label>
-          <input type="file" id="hero-file-input" accept="image/*" onchange="handleHeroFileSelect(event)" class="text-xs file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blush-100 file:text-blush-600 hover:file:bg-blush-200 cursor-pointer w-full text-gray-500" />
-          <input type="text" id="hero-url-input" placeholder="e.g. photo.jpg or https://..." class="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-blush-400 bg-white" />
-          <div id="hero-preview-container" class="hidden aspect-video rounded-xl overflow-hidden bg-gray-100 relative mt-2 border border-gray-200">
-            <img id="hero-preview-img" src="" alt="Preview" class="w-full h-full object-cover" />
-          </div>
-        </div>
-        <div class="flex gap-3 pt-2">
-          <button type="button" onclick="resetHeroToDefault()" class="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold transition">Reset</button>
-          <button type="submit" class="flex-1 py-2.5 bg-blush-500 hover:bg-blush-600 text-white text-sm font-semibold rounded-xl shadow-md transition flex items-center justify-center gap-2">
-            <i data-lucide="save" class="w-4 h-4"></i>
-            <span>Update Favorite View</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- 3. INSTANT HUG MODAL -->
-  <div id="hug-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-rosewood/40 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
-    <div class="glass-card bg-white/95 rounded-3xl max-w-md w-full p-6 sm:p-8 text-center space-y-6 shadow-2xl border border-blush-200 transform scale-95 transition-all duration-300 relative overflow-hidden" id="hug-modal-content">
-      <button onclick="closeHugModal()" class="absolute top-4 right-4 text-gray-400 hover:text-rosewood p-1.5 rounded-full hover:bg-gray-100 transition">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
-
-      <div class="relative w-28 h-28 mx-auto flex items-center justify-center">
-        <div class="absolute inset-0 rounded-full bg-blush-200/60 animate-ping opacity-75"></div>
-        <div class="absolute inset-2 rounded-full bg-blush-300/40 animate-pulse"></div>
-        <div class="relative w-20 h-20 rounded-full bg-gradient-to-tr from-blush-400 to-blush-500 flex items-center justify-center text-white shadow-lg shadow-blush-400/40 animate-pulse-subtle">
-          <i data-lucide="heart" class="w-10 h-10 fill-white"></i>
-        </div>
-      </div>
-
-      <div class="space-y-2">
-        <span class="text-xs uppercase font-bold tracking-widest text-blush-500">Breathe in... and breathe out</span>
-        <h3 class="font-serif text-2xl font-bold text-rosewood">You are wrapped in my love.</h3>
-        <p class="text-xs sm:text-sm text-gray-600 leading-relaxed pt-1">
-          Close your eyes for three seconds. Imagine my arms around you, holding you tight and safe. Whatever is weighing on your heart right now, you don't have to carry it alone. I am always right here.
-        </p>
-      </div>
-
-      <div class="bg-cream-50 p-4 rounded-2xl border border-champagne-200 text-rosewood/80 font-hand text-xl">
-        "I love you in all your moods, on easy days and hard days alike."
-      </div>
-
-      <button onclick="closeHugModal(); triggerLoveShower();" class="w-full py-3 rounded-2xl bg-blush-500 hover:bg-blush-600 text-white font-semibold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2">
-        <i data-lucide="heart" class="w-4 h-4 fill-white"></i>
-        <span>I Feel Warmer Now</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- 4. ADD CUSTOM DREAM MODAL -->
-  <div id="add-dream-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-rosewood/40 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
-    <div class="glass-card bg-white/95 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-blush-200 transform scale-95 transition-all duration-300 max-h-[90vh] overflow-y-auto" id="add-dream-content">
-      <div class="flex items-center justify-between">
-        <div>
-          <h3 class="font-serif text-xl font-bold text-rosewood">Add A Future Dream ✨</h3>
-          <p class="text-xs text-gray-500">Describe what we will manifest and experience together.</p>
-        </div>
-        <button onclick="closeAddDreamModal()" class="text-gray-400 hover:text-rosewood p-1">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <form id="dream-form" onsubmit="handleCreateDream(event)" class="space-y-4 text-left">
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Dream Title</label>
-          <input type="text" id="dream-title-input" required placeholder="e.g. Our Dream Farm & Horse" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blush-400 bg-white" />
-        </div>
-
-        <div class="space-y-2">
-          <label class="block text-xs font-medium text-gray-700">Badge Tag</label>
-          <div class="flex flex-wrap gap-1.5 mb-2">
-            <button type="button" onclick="setDreamTagPreset('🏡', 'Our Home')" class="px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-blush-100 text-[11px] font-medium border border-champagne-200 text-rosewood transition">🏡 Our Home</button>
-            <button type="button" onclick="setDreamTagPreset('👶', 'Our Baby')" class="px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-blush-100 text-[11px] font-medium border border-champagne-200 text-rosewood transition">👶 Our Baby</button>
-            <button type="button" onclick="setDreamTagPreset('🐕', 'Our Pup')" class="px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-blush-100 text-[11px] font-medium border border-champagne-200 text-rosewood transition">🐕 Our Pup</button>
-            <button type="button" onclick="setDreamTagPreset('🐱', 'Kitty')" class="px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-blush-100 text-[11px] font-medium border border-champagne-200 text-rosewood transition">🐱 Kitty</button>
-            <button type="button" onclick="setDreamTagPreset('🐴', 'Horse Time')" class="px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-blush-100 text-[11px] font-medium border border-champagne-200 text-rosewood transition">🐴 Horse Time</button>
-          </div>
-
-          <div class="grid grid-cols-3 gap-2">
-            <input type="text" id="dream-emoji-input" required placeholder="Emoji" value="✨" class="col-span-1 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blush-400 bg-white text-center" />
-            <input type="text" id="dream-tagname-input" required placeholder="Tag Name" value="Our Dream" class="col-span-2 px-3.5 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blush-400 bg-white" />
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Why this means the world to us</label>
-          <textarea id="dream-desc-input" rows="3" required placeholder="Describe our future sweet memory..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blush-400 bg-white resize-none"></textarea>
-        </div>
-
-        <div class="space-y-2">
-          <label class="block text-xs font-medium text-gray-700">Photo (File Upload or Image URL)</label>
-          <input type="file" id="dream-file-input" accept="image/*" onchange="handleDreamFileSelect(event)" class="text-xs file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blush-100 file:text-blush-600 hover:file:bg-blush-200 cursor-pointer w-full text-gray-500" />
-          <input type="text" id="dream-image-input" placeholder="https://... or photo.jpg" class="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-blush-400 bg-white" />
-          <div id="dream-preview-container" class="hidden aspect-video rounded-xl overflow-hidden bg-gray-100 relative mt-2 border border-gray-200">
-            <img id="dream-preview-img" src="" alt="Preview" class="w-full h-full object-cover" />
-          </div>
-        </div>
-
-        <button type="submit" class="w-full py-3 bg-blush-500 hover:bg-blush-600 text-white text-sm font-semibold rounded-2xl shadow-md transition flex items-center justify-center gap-2">
-          <i data-lucide="sparkles" class="w-4 h-4"></i>
-          <span>Add To Dream Board 💖</span>
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- 5. ADD MEMORY MODAL -->
-  <div id="add-memory-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-rosewood/40 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
-    <div class="glass-card bg-white/95 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-blush-200 transform scale-95 transition-all duration-300 max-h-[90vh] overflow-y-auto" id="add-memory-content">
-      <div class="flex items-center justify-between">
-        <div>
-          <h3 class="font-serif text-xl font-bold text-rosewood">Add A Cherished Memory 📸</h3>
-          <p class="text-xs text-gray-500">Save a special moment into our permanent memory box.</p>
-        </div>
-        <button onclick="closeAddMemoryModal()" class="text-gray-400 hover:text-rosewood p-1">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <form id="memory-form" onsubmit="handleCreateMemory(event)" class="space-y-4 text-left">
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Memory Title</label>
-          <input type="text" id="mem-title-input" required placeholder="e.g. Cooking together and dancing in the kitchen" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blush-400 bg-white" />
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1">Date</label>
-            <input type="date" id="mem-date-input" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blush-400 bg-white" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1">Tag</label>
-            <select id="mem-tag-input" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blush-400 bg-white">
-              <option value="Special Date 🍷">Special Date 🍷</option>
-              <option value="Milestone 💍">Milestone 💍</option>
-              <option value="Goofy Moment 🤪">Goofy Moment 🤪</option>
-              <option value="Cozy Day ☕">Cozy Day ☕</option>
-              <option value="Travel ✈️">Travel ✈️</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Caption / Note</label>
-          <input type="text" id="mem-caption-input" placeholder="e.g. My favorite smile in the world" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blush-400 bg-white" />
-        </div>
-
-        <div class="space-y-2">
-          <label class="block text-xs font-medium text-gray-700">Photo (File Upload or Image URL)</label>
-          <input type="file" id="mem-file-input" accept="image/*" onchange="handleMemoryFileSelect(event)" class="text-xs file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blush-100 file:text-blush-600 hover:file:bg-blush-200 cursor-pointer w-full text-gray-500" />
-          <input type="text" id="mem-url-input" placeholder="https://... or photo.jpg" class="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-blush-400 bg-white" />
-          <div id="mem-preview-container" class="hidden aspect-video rounded-xl overflow-hidden bg-gray-100 relative mt-2 border border-gray-200">
-            <img id="mem-preview-img" src="" alt="Preview" class="w-full h-full object-cover" />
-          </div>
-        </div>
-
-        <button type="submit" class="w-full py-3 bg-blush-500 hover:bg-blush-600 text-white text-sm font-semibold rounded-2xl shadow-md transition flex items-center justify-center gap-2">
-          <i data-lucide="save" class="w-4 h-4"></i>
-          <span>Save Memory Forever</span>
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Custom Scripts -->
   <script src="script.js"></script>
 </body>
 </html>

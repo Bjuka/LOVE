@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sanctuary Admin Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-stone-100 text-stone-800 antialiased p-6 md:p-12">
+
+  <div class="max-w-4xl mx-auto space-y-8">
+    <div class="flex items-center justify-between border-b border-stone-300 pb-4">
+      <div>
+        <h1 class="text-3xl font-bold text-stone-900">Sanctuary Backend Portal</h1>
+        <p class="text-sm text-stone-500">Upload photos, add songs, and manage your database.</p>
+      </div>
+      <a href="index.html" class="px-4 py-2 bg-stone-200 hover:bg-stone-300 text-sm font-semibold rounded-xl transition flex items-center gap-1.5">
+        <i data-lucide="external-link" class="w-4 h-4"></i> View Website
+      </a>
+    </div>
+
+    <!-- 1. ADD MEMORY -->
+    <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
+      <h2 class="text-lg font-bold flex items-center gap-2">
+        <i data-lucide="camera" class="w-5 h-5 text-rose-500"></i> Add Memory
+      </h2>
+      <form onsubmit="handleUploadMemory(event)" class="space-y-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input type="text" id="admin-mem-title" placeholder="Memory Title" required class="p-2.5 border rounded-xl text-sm" />
+          <input type="date" id="admin-mem-date" required class="p-2.5 border rounded-xl text-sm" />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input type="text" id="admin-mem-tag" placeholder="Tag (e.g. Special dayyy 🍷)" class="p-2.5 border rounded-xl text-sm" />
+          <input type="text" id="admin-mem-caption" placeholder="Caption quote" class="p-2.5 border rounded-xl text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone-600 mb-1">Select Photo File (Uploaded to Supabase 'photos' bucket)</label>
+          <input type="file" id="admin-mem-file" accept="image/*" class="text-sm file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-stone-200 cursor-pointer" />
+        </div>
+        <button type="submit" id="mem-submit-btn" class="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-sm font-semibold transition">
+          Upload & Save Memory
+        </button>
+      </form>
+    </div>
+
+    <!-- 2. ADD DREAM -->
+    <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
+      <h2 class="text-lg font-bold flex items-center gap-2">
+        <i data-lucide="sparkles" class="w-5 h-5 text-amber-500"></i> Add Dream
+      </h2>
+      <form onsubmit="handleUploadDream(event)" class="space-y-3">
+        <div class="grid grid-cols-3 gap-3">
+          <input type="text" id="admin-dream-emoji" placeholder="Emoji" value="✨" class="p-2.5 border rounded-xl text-sm col-span-1" />
+          <input type="text" id="admin-dream-title" placeholder="Dream Title" required class="p-2.5 border rounded-xl text-sm col-span-2" />
+        </div>
+        <input type="text" id="admin-dream-tag" placeholder="Tag Name" value="Our Dream" class="w-full p-2.5 border rounded-xl text-sm" />
+        <textarea id="admin-dream-desc" placeholder="Why this means the world to us..." rows="2" class="w-full p-2.5 border rounded-xl text-sm"></textarea>
+        <div>
+          <label class="block text-xs font-semibold text-stone-600 mb-1">Dream Image (Optional)</label>
+          <input type="file" id="admin-dream-file" accept="image/*" class="text-sm file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-stone-200 cursor-pointer" />
+        </div>
+        <button type="submit" id="dream-submit-btn" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold transition">
+          Upload & Save Dream
+        </button>
+      </form>
+    </div>
+
+    <!-- 3. ADD SONG -->
+    <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
+      <h2 class="text-lg font-bold flex items-center gap-2">
+        <i data-lucide="music" class="w-5 h-5 text-purple-500"></i> Add Song to Playlist
+      </h2>
+      <form onsubmit="handleUploadSong(event)" class="space-y-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input type="text" id="admin-song-title" placeholder="Song Title" required class="p-2.5 border rounded-xl text-sm" />
+          <input type="text" id="admin-song-artist" placeholder="Artist Name" required class="p-2.5 border rounded-xl text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone-600 mb-1">Select Audio File (.mp3/.wav - Uploaded to Supabase 'music' bucket)</label>
+          <input type="file" id="admin-song-file" accept="audio/*" class="text-sm file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-stone-200 cursor-pointer" />
+        </div>
+        <button type="submit" id="song-submit-btn" class="px-5 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl text-sm font-semibold transition">
+          Upload & Save Song
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://idlhbjoxxskzmvzrhjpb.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_0NiaQQkwoIcttLrvBEzAqg_t5vaBgAY";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function handleUploadMemory(e) {
+      e.preventDefault();
+      const btn = document.getElementById('mem-submit-btn');
+      btn.textContent = "Uploading...";
+      btn.disabled = true;
+
+      try {
+        let imageUrl = "memory1.jpg";
+        const file = document.getElementById('admin-mem-file').files[0];
+        if (file) {
+          const path = `memories/${Date.now()}_${file.name}`;
+          const { error: upErr } = await supabase.storage.from('photos').upload(path, file);
+          if (upErr) throw upErr;
+          const { data } = supabase.storage.from('photos').getPublicUrl(path);
+          imageUrl = data.publicUrl;
+        }
+
+        const { error: dbErr } = await supabase.from('memories').insert([{
+          title: document.getElementById('admin-mem-title').value.trim(),
+          date: document.getElementById('admin-mem-date').value,
+          tag: document.getElementById('admin-mem-tag').value.trim() || 'Memory',
+          caption: document.getElementById('admin-mem-caption').value.trim(),
+          image_url: imageUrl
+        }]);
+
+        if (dbErr) throw dbErr;
+        alert("Memory added successfully!");
+        e.target.reset();
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btn.textContent = "Upload & Save Memory";
+        btn.disabled = false;
+      }
+    }
+
+    async function handleUploadDream(e) {
+      e.preventDefault();
+      const btn = document.getElementById('dream-submit-btn');
+      btn.textContent = "Uploading...";
+      btn.disabled = true;
+
+      try {
+        let imageUrl = "babieee.jpg";
+        const file = document.getElementById('admin-dream-file').files[0];
+        if (file) {
+          const path = `dreams/${Date.now()}_${file.name}`;
+          const { error: upErr } = await supabase.storage.from('photos').upload(path, file);
+          if (upErr) throw upErr;
+          const { data } = supabase.storage.from('photos').getPublicUrl(path);
+          imageUrl = data.publicUrl;
+        }
+
+        const { error: dbErr } = await supabase.from('dreams').insert([{
+          emoji: document.getElementById('admin-dream-emoji').value.trim() || '✨',
+          title: document.getElementById('admin-dream-title').value.trim(),
+          tag: document.getElementById('admin-dream-tag').value.trim() || 'Dream',
+          description: document.getElementById('admin-dream-desc').value.trim(),
+          image_url: imageUrl
+        }]);
+
+        if (dbErr) throw dbErr;
+        alert("Dream added successfully!");
+        e.target.reset();
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btn.textContent = "Upload & Save Dream";
+        btn.disabled = false;
+      }
+    }
+
+    async function handleUploadSong(e) {
+      e.preventDefault();
+      const btn = document.getElementById('song-submit-btn');
+      btn.textContent = "Uploading...";
+      btn.disabled = true;
+
+      try {
+        const file = document.getElementById('admin-song-file').files[0];
+        if (!file) throw new Error("Please select an audio file.");
+
+        const path = `songs/${Date.now()}_${file.name}`;
+        const { error: upErr } = await supabase.storage.from('music').upload(path, file);
+        if (upErr) throw upErr;
+
+        const { data } = supabase.storage.from('music').getPublicUrl(path);
+
+        const { error: dbErr } = await supabase.from('songs').insert([{
+          title: document.getElementById('admin-song-title').value.trim(),
+          artist: document.getElementById('admin-song-artist').value.trim(),
+          url: data.publicUrl
+        }]);
+
+        if (dbErr) throw dbErr;
+        alert("Song uploaded to bucket & added to playlist!");
+        e.target.reset();
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btn.textContent = "Upload & Save Song";
+        btn.disabled = false;
+      }
+    }
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>
