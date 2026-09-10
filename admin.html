@@ -3,97 +3,353 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sanctuary Admin Portal</title>
+  <title>Sanctuary — Command Center</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS & Lucide -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#120D10',
+            rosewood: '#1E1418',
+            surface: '#291C22',
+            borderGlow: '#422A34',
+            blush: {
+              400: '#E78895',
+              500: '#D96576',
+              600: '#BE4B5C'
+            },
+            champagne: {
+              300: '#DFB78C',
+              400: '#C99E74'
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            serif: ['"Playfair Display"', 'serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body.admin-locked #admin-app {
+      display: none !important;
+    }
+    .glass-panel {
+      background: rgba(30, 20, 24, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(231, 136, 149, 0.15);
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #120D10; }
+    ::-webkit-scrollbar-thumb { background: #422A34; border-radius: 9999px; }
+  </style>
 </head>
-<body class="bg-stone-100 text-stone-800 antialiased p-6 md:p-12">
 
-  <div class="max-w-4xl mx-auto space-y-8">
-    <div class="flex items-center justify-between border-b border-stone-300 pb-4">
-      <div>
-        <h1 class="text-3xl font-bold text-stone-900">Sanctuary Backend Portal</h1>
-        <p class="text-sm text-stone-500">Upload photos, add songs, and manage your database.</p>
+<body class="bg-obsidian text-stone-200 font-sans antialiased min-h-screen admin-locked selection:bg-blush-500 selection:text-white">
+
+  <!-- ==================== 1. ADMIN PASSCODE LOCKSCREEN ==================== -->
+  <div id="admin-gate" class="fixed inset-0 z-50 flex items-center justify-center bg-obsidian/95 backdrop-blur-2xl p-4">
+    <div class="glass-panel w-full max-w-sm p-8 rounded-3xl text-center space-y-6 shadow-2xl border border-borderGlow">
+      <div class="w-14 h-14 mx-auto rounded-2xl bg-surface border border-borderGlow flex items-center justify-center text-blush-400">
+        <i data-lucide="shield-lock" class="w-7 h-7"></i>
       </div>
-      <a href="index.html" class="px-4 py-2 bg-stone-200 hover:bg-stone-300 text-sm font-semibold rounded-xl transition flex items-center gap-1.5">
-        <i data-lucide="external-link" class="w-4 h-4"></i> View Website
-      </a>
-    </div>
+      <div>
+        <h2 class="font-serif text-2xl font-bold text-white tracking-tight">Restricted Access</h2>
+        <p class="text-xs text-stone-400 mt-1 font-mono">Sanctuary Management System</p>
+      </div>
 
-    <!-- 1. ADD MEMORY -->
-    <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
-      <h2 class="text-lg font-bold flex items-center gap-2">
-        <i data-lucide="camera" class="w-5 h-5 text-rose-500"></i> Add Memory
-      </h2>
-      <form onsubmit="handleUploadMemory(event)" class="space-y-3">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input type="text" id="admin-mem-title" placeholder="Memory Title" required class="p-2.5 border rounded-xl text-sm" />
-          <input type="date" id="admin-mem-date" required class="p-2.5 border rounded-xl text-sm" />
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input type="text" id="admin-mem-tag" placeholder="Tag (e.g. Special dayyy 🍷)" class="p-2.5 border rounded-xl text-sm" />
-          <input type="text" id="admin-mem-caption" placeholder="Caption quote" class="p-2.5 border rounded-xl text-sm" />
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-stone-600 mb-1">Select Photo File (Uploaded to Supabase 'photos' bucket)</label>
-          <input type="file" id="admin-mem-file" accept="image/*" class="text-sm file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-stone-200 cursor-pointer" />
-        </div>
-        <button type="submit" id="mem-submit-btn" class="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-sm font-semibold transition">
-          Upload & Save Memory
-        </button>
-      </form>
-    </div>
-
-    <!-- 2. ADD DREAM -->
-    <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
-      <h2 class="text-lg font-bold flex items-center gap-2">
-        <i data-lucide="sparkles" class="w-5 h-5 text-amber-500"></i> Add Dream
-      </h2>
-      <form onsubmit="handleUploadDream(event)" class="space-y-3">
-        <div class="grid grid-cols-3 gap-3">
-          <input type="text" id="admin-dream-emoji" placeholder="Emoji" value="✨" class="p-2.5 border rounded-xl text-sm col-span-1" />
-          <input type="text" id="admin-dream-title" placeholder="Dream Title" required class="p-2.5 border rounded-xl text-sm col-span-2" />
-        </div>
-        <input type="text" id="admin-dream-tag" placeholder="Tag Name" value="Our Dream" class="w-full p-2.5 border rounded-xl text-sm" />
-        <textarea id="admin-dream-desc" placeholder="Why this means the world to us..." rows="2" class="w-full p-2.5 border rounded-xl text-sm"></textarea>
-        <div>
-          <label class="block text-xs font-semibold text-stone-600 mb-1">Dream Image (Optional)</label>
-          <input type="file" id="admin-dream-file" accept="image/*" class="text-sm file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-stone-200 cursor-pointer" />
-        </div>
-        <button type="submit" id="dream-submit-btn" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold transition">
-          Upload & Save Dream
-        </button>
-      </form>
-    </div>
-
-    <!-- 3. ADD SONG -->
-    <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
-      <h2 class="text-lg font-bold flex items-center gap-2">
-        <i data-lucide="music" class="w-5 h-5 text-purple-500"></i> Add Song to Playlist
-      </h2>
-      <form onsubmit="handleUploadSong(event)" class="space-y-3">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input type="text" id="admin-song-title" placeholder="Song Title" required class="p-2.5 border rounded-xl text-sm" />
-          <input type="text" id="admin-song-artist" placeholder="Artist Name" required class="p-2.5 border rounded-xl text-sm" />
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-stone-600 mb-1">Select Audio File (.mp3/.wav - Uploaded to Supabase 'music' bucket)</label>
-          <input type="file" id="admin-song-file" accept="audio/*" class="text-sm file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-stone-200 cursor-pointer" />
-        </div>
-        <button type="submit" id="song-submit-btn" class="px-5 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl text-sm font-semibold transition">
-          Upload & Save Song
+      <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+        <input 
+          type="password" 
+          id="admin-pass-input" 
+          placeholder="Enter Master Password..." 
+          autocomplete="off"
+          required
+          class="w-full px-4 py-3 text-center text-sm tracking-widest rounded-2xl bg-surface/80 border border-borderGlow text-white placeholder-stone-500 focus:outline-none focus:border-blush-400 font-mono"
+        />
+        <p id="admin-auth-err" class="text-xs text-rose-400 font-medium hidden">Access Denied: Invalid passcode.</p>
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-blush-500 to-blush-600 hover:from-blush-600 hover:to-blush-700 text-white font-semibold text-xs rounded-2xl uppercase tracking-wider transition shadow-lg shadow-blush-500/20 active:scale-95">
+          Authenticate
         </button>
       </form>
     </div>
   </div>
 
+  <!-- ==================== 2. MAIN ADMIN DASHBOARD ==================== -->
+  <div id="admin-app" class="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-10">
+
+    <!-- Top Bar -->
+    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-borderGlow pb-6">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-surface border border-borderGlow flex items-center justify-center text-blush-400">
+          <i data-lucide="database" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="font-serif text-2xl font-bold text-white">Sanctuary Command Center</h1>
+          <p class="text-xs text-stone-400">Connected: <span id="project-url-badge" class="font-mono text-champagne-300">...</span></p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="px-4 py-2 rounded-xl bg-surface hover:bg-surface/80 border border-borderGlow text-xs font-semibold text-stone-300 flex items-center gap-1.5 transition">
+          <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+          <span>View Site</span>
+        </a>
+        <button onclick="adminLogout()" class="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-xs font-semibold text-red-400 transition">
+          Lock Session
+        </button>
+      </div>
+    </header>
+
+    <!-- Stat Metrics -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="glass-panel p-5 rounded-2xl flex items-center justify-between">
+        <div>
+          <p class="text-[11px] font-mono uppercase tracking-wider text-stone-400">Memories in DB</p>
+          <p id="stat-memories" class="text-2xl font-bold text-white mt-0.5">0</p>
+        </div>
+        <i data-lucide="camera" class="w-8 h-8 text-blush-400/50"></i>
+      </div>
+      <div class="glass-panel p-5 rounded-2xl flex items-center justify-between">
+        <div>
+          <p class="text-[11px] font-mono uppercase tracking-wider text-stone-400">Dreams in DB</p>
+          <p id="stat-dreams" class="text-2xl font-bold text-white mt-0.5">0</p>
+        </div>
+        <i data-lucide="sparkles" class="w-8 h-8 text-champagne-300/50"></i>
+      </div>
+      <div class="glass-panel p-5 rounded-2xl flex items-center justify-between">
+        <div>
+          <p class="text-[11px] font-mono uppercase tracking-wider text-stone-400">Songs in Playlist</p>
+          <p id="stat-songs" class="text-2xl font-bold text-white mt-0.5">0</p>
+        </div>
+        <i data-lucide="music" class="w-8 h-8 text-purple-400/50"></i>
+      </div>
+    </div>
+
+    <!-- ONE-CLICK SYNC MIGRATION SECTION -->
+    <div class="glass-panel p-6 rounded-3xl border border-borderGlow space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="refresh-cw" class="w-4 h-4 text-blush-400"></i>
+            Database Synchronization Engine
+          </h3>
+          <p class="text-xs text-stone-400 mt-0.5">Push default memories, dreams, and audio records to Supabase tables.</p>
+        </div>
+        <button onclick="runManualSync()" id="sync-btn" class="px-5 py-2.5 bg-surface hover:bg-surface/80 border border-blush-500/40 text-blush-400 text-xs font-semibold rounded-xl transition flex items-center gap-2 shadow-lg shadow-blush-500/10 active:scale-95">
+          <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+          <span>Sync Default Content Now</span>
+        </button>
+      </div>
+
+      <!-- Live Terminal Output -->
+      <div class="bg-obsidian/90 border border-borderGlow p-3.5 rounded-xl font-mono text-xs text-stone-400 max-h-36 overflow-y-auto space-y-1" id="sync-console">
+        <p class="text-stone-500">System idle. Ready to synchronize data...</p>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="flex border-b border-borderGlow text-xs font-semibold gap-6">
+      <button onclick="switchTab('memories')" id="tab-btn-memories" class="pb-3 border-b-2 border-blush-400 text-white flex items-center gap-2">
+        <i data-lucide="camera" class="w-4 h-4 text-blush-400"></i> Memories
+      </button>
+      <button onclick="switchTab('dreams')" id="tab-btn-dreams" class="pb-3 border-b-2 border-transparent text-stone-400 hover:text-white flex items-center gap-2">
+        <i data-lucide="sparkles" class="w-4 h-4 text-champagne-300"></i> Dreams
+      </button>
+      <button onclick="switchTab('songs')" id="tab-btn-songs" class="pb-3 border-b-2 border-transparent text-stone-400 hover:text-white flex items-center gap-2">
+        <i data-lucide="music" class="w-4 h-4 text-purple-400"></i> Music Queue
+      </button>
+    </div>
+
+    <!-- PANEL 1: MEMORIES -->
+    <div id="panel-memories" class="space-y-6">
+      <form onsubmit="handleCreateMemory(event)" class="glass-panel p-6 rounded-3xl space-y-4">
+        <h4 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Upload New Memory</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input type="text" id="mem-title" placeholder="Memory Title *" required class="p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white focus:outline-none focus:border-blush-400" />
+          <input type="date" id="mem-date" required class="p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white focus:outline-none focus:border-blush-400" />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input type="text" id="mem-tag" placeholder="Tag (e.g. MINEEE 💍)" class="p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white focus:outline-none focus:border-blush-400" />
+          <input type="text" id="mem-caption" placeholder="Love quote / caption" class="p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white focus:outline-none focus:border-blush-400" />
+        </div>
+        <div class="space-y-1">
+          <label class="block text-[11px] text-stone-400">Select Image File (Uploaded directly to Supabase 'photos' bucket)</label>
+          <input type="file" id="mem-file" accept="image/*" class="w-full text-xs text-stone-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-surface file:text-blush-400 file:font-semibold cursor-pointer" />
+        </div>
+        <button type="submit" id="mem-submit-btn" class="px-6 py-2.5 bg-blush-500 hover:bg-blush-600 text-white rounded-xl text-xs font-semibold uppercase tracking-wider transition">
+          Save Memory
+        </button>
+      </form>
+      <div id="list-memories" class="space-y-2"></div>
+    </div>
+
+    <!-- PANEL 2: DREAMS -->
+    <div id="panel-dreams" class="space-y-6 hidden">
+      <form onsubmit="handleCreateDream(event)" class="glass-panel p-6 rounded-3xl space-y-4">
+        <h4 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Add Dream to Board</h4>
+        <div class="grid grid-cols-3 gap-3">
+          <input type="text" id="dream-emoji" placeholder="Emoji" value="✨" class="p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white text-center" />
+          <input type="text" id="dream-title" placeholder="Dream Title *" required class="col-span-2 p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white focus:outline-none focus:border-blush-400" />
+        </div>
+        <input type="text" id="dream-tag" placeholder="Tag Name (e.g. Our Future)" class="w-full p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white" />
+        <textarea id="dream-desc" placeholder="Why this means the world to us..." rows="2" class="w-full p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white"></textarea>
+        <div class="space-y-1">
+          <label class="block text-[11px] text-stone-400">Dream Photo (Optional - Uploads to 'photos' bucket)</label>
+          <input type="file" id="dream-file" accept="image/*" class="w-full text-xs text-stone-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-surface file:text-champagne-300 file:font-semibold cursor-pointer" />
+        </div>
+        <button type="submit" id="dream-submit-btn" class="px-6 py-2.5 bg-champagne-400 hover:bg-champagne-300 text-obsidian rounded-xl text-xs font-semibold uppercase tracking-wider transition">
+          Save Dream
+        </button>
+      </form>
+      <div id="list-dreams" class="space-y-2"></div>
+    </div>
+
+    <!-- PANEL 3: SONGS -->
+    <div id="panel-songs" class="space-y-6 hidden">
+      <form onsubmit="handleCreateSong(event)" class="glass-panel p-6 rounded-3xl space-y-4">
+        <h4 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Upload Audio Track</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input type="text" id="song-title" placeholder="Track Title *" required class="p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white focus:outline-none focus:border-blush-400" />
+          <input type="text" id="song-artist" placeholder="Artist *" required class="p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white focus:outline-none focus:border-blush-400" />
+        </div>
+        <div class="space-y-1">
+          <label class="block text-[11px] text-stone-400">Select Audio File (.mp3/.wav - Uploaded directly to 'music' bucket)</label>
+          <input type="file" id="song-file" accept="audio/*" required class="w-full text-xs text-stone-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-surface file:text-purple-400 file:font-semibold cursor-pointer" />
+        </div>
+        <button type="submit" id="song-submit-btn" class="px-6 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl text-xs font-semibold uppercase tracking-wider transition">
+          Upload & Save Song
+        </button>
+      </form>
+      <div id="list-songs" class="space-y-2"></div>
+    </div>
+
+  </div>
+
+  <!-- ==================== LOGIC ENGINE ==================== -->
   <script>
+    // Master Admin Password Hash (default matches your visitor passcode hash, or change as needed)
+    const ADMIN_PASSCODE_HASH = "7ad938a2c26edc6be22bcb1c2b17e1140c40257e2e2ec052db5bcee7f66aba08";
+
     const SUPABASE_URL = "https://idlhbjoxxskzmvzrhjpb.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_0NiaQQkwoIcttLrvBEzAqg_t5vaBgAY";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    async function handleUploadMemory(e) {
+    const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+    // --- 1. ADMIN GATE SECURITY ---
+    async function sha256(str) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str.trim()));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const input = document.getElementById('admin-pass-input');
+      const hash = await sha256(input.value);
+
+      if (hash === ADMIN_PASSCODE_HASH || input.value.trim() === ADMIN_PASSCODE_HASH) {
+        sessionStorage.setItem('sanctuary_admin_auth', 'true');
+        document.body.classList.remove('admin-locked');
+        document.getElementById('admin-gate').style.display = 'none';
+        initAdminDashboard();
+      } else {
+        document.getElementById('admin-auth-err').classList.remove('hidden');
+        input.value = '';
+      }
+    }
+
+    function adminLogout() {
+      sessionStorage.removeItem('sanctuary_admin_auth');
+      window.location.reload();
+    }
+
+    // --- 2. LOGGER UTILITY ---
+    function log(msg, type = 'info') {
+      const c = document.getElementById('sync-console');
+      const time = new Date().toLocaleTimeString();
+      const color = type === 'error' ? 'text-red-400' : (type === 'success' ? 'text-green-400' : 'text-stone-300');
+      c.innerHTML += `<p class="${color}">[${time}] ${msg}</p>`;
+      c.scrollTop = c.scrollHeight;
+    }
+
+    // --- 3. SEED / AUTO-MIGRATION ENGINE ---
+    const defaultMemories = [
+      { title: 'What makes me happy?', date: '2026-03-13', tag: 'MINEEE 💍', caption: 'Every moment with you makes me feel special beacause you feel like a long lost part of me which makes me complete 💕💕', image_url: 'memory1.jpg' },
+      { title: 'My Cute Babieeee', date: '2025-12-12', tag: 'Special dayyy 🍷', caption: 'Whenever im with you, im never alone. you make me feel so happy like im some celebrity but tbh, i just want to be YOURS ❤️', image_url: 'memory2.jpg' },
+      { title: 'Ummmmmah', date: '2026-08-14', tag: 'Goofy Moments 🤪', caption: 'You brings out the kid in me (idk the date😭)', image_url: 'memory3.jpg' }
+    ];
+
+    const defaultDreams = [
+      { emoji: '❤️', title: 'My Second Love', tag: 'Our little cuteness', description: 'Our daughter will look like this and we will be the best parents anyone can ever wish for ❤️❤️', image_url: 'babieee.jpg' },
+      { emoji: '🌻🌻', title: 'Together and Forever', tag: 'Our Goal', description: 'No matter what happens, we stay together, we fight together and we fix together cuz you\'re my wifey and i love you the most. just like this💕', image_url: 'dream2.jpg' }
+    ];
+
+    const defaultSongs = [
+      { title: 'Accidently in LOVE', artist: 'Counting Crows', url: 'Accidently in Love.mp3' },
+      { title: 'Make you MINE', artist: 'PUBLIC', url: 'Make you MINE.mp3' },
+      { title: 'You & I', artist: 'One Direection', url: 'You & I.mp3' }
+    ];
+
+    async function runManualSync() {
+      const btn = document.getElementById('sync-btn');
+      btn.disabled = true;
+      log("Starting database synchronization...", 'info');
+
+      try {
+        // Sync Memories
+        const { count: mCount } = await supabase.from('memories').select('*', { count: 'exact', head: true });
+        if (mCount === 0) {
+          const { error } = await supabase.from('memories').insert(defaultMemories);
+          if (error) throw new Error("Memories table insert: " + error.message);
+          log("✓ Inserted 3 default memories into table 'memories'", 'success');
+        } else {
+          log(`• Table 'memories' already contains ${mCount} rows (skipped)`, 'info');
+        }
+
+        // Sync Dreams
+        const { count: dCount } = await supabase.from('dreams').select('*', { count: 'exact', head: true });
+        if (dCount === 0) {
+          const { error } = await supabase.from('dreams').insert(defaultDreams);
+          if (error) throw new Error("Dreams table insert: " + error.message);
+          log("✓ Inserted 2 default dreams into table 'dreams'", 'success');
+        } else {
+          log(`• Table 'dreams' already contains ${dCount} rows (skipped)`, 'info');
+        }
+
+        // Sync Songs
+        const { count: sCount } = await supabase.from('songs').select('*', { count: 'exact', head: true });
+        if (sCount === 0) {
+          const { error } = await supabase.from('songs').insert(defaultSongs);
+          if (error) throw new Error("Songs table insert: " + error.message);
+          log("✓ Inserted 3 default tracks into table 'songs'", 'success');
+        } else {
+          log(`• Table 'songs' already contains ${sCount} rows (skipped)`, 'info');
+        }
+
+        log("Synchronization completed successfully!", 'success');
+        refreshData();
+      } catch (err) {
+        log("Sync error: " + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // --- 4. UPLOADS & MUTATIONS ---
+    async function handleCreateMemory(e) {
       e.preventDefault();
       const btn = document.getElementById('mem-submit-btn');
       btn.textContent = "Uploading...";
@@ -101,9 +357,9 @@
 
       try {
         let imageUrl = "memory1.jpg";
-        const file = document.getElementById('admin-mem-file').files[0];
+        const file = document.getElementById('mem-file').files[0];
         if (file) {
-          const path = `memories/${Date.now()}_${file.name}`;
+          const path = `memories/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
           const { error: upErr } = await supabase.storage.from('photos').upload(path, file);
           if (upErr) throw upErr;
           const { data } = supabase.storage.from('photos').getPublicUrl(path);
@@ -111,25 +367,26 @@
         }
 
         const { error: dbErr } = await supabase.from('memories').insert([{
-          title: document.getElementById('admin-mem-title').value.trim(),
-          date: document.getElementById('admin-mem-date').value,
-          tag: document.getElementById('admin-mem-tag').value.trim() || 'Memory',
-          caption: document.getElementById('admin-mem-caption').value.trim(),
+          title: document.getElementById('mem-title').value.trim(),
+          date: document.getElementById('mem-date').value,
+          tag: document.getElementById('mem-tag').value.trim() || 'Memory',
+          caption: document.getElementById('mem-caption').value.trim(),
           image_url: imageUrl
         }]);
 
         if (dbErr) throw dbErr;
-        alert("Memory added successfully!");
+        log("Memory added successfully!", 'success');
         e.target.reset();
+        refreshData();
       } catch (err) {
-        alert("Error: " + err.message);
+        log("Failed to add memory: " + err.message, 'error');
       } finally {
-        btn.textContent = "Upload & Save Memory";
+        btn.textContent = "Save Memory";
         btn.disabled = false;
       }
     }
 
-    async function handleUploadDream(e) {
+    async function handleCreateDream(e) {
       e.preventDefault();
       const btn = document.getElementById('dream-submit-btn');
       btn.textContent = "Uploading...";
@@ -137,9 +394,9 @@
 
       try {
         let imageUrl = "babieee.jpg";
-        const file = document.getElementById('admin-dream-file').files[0];
+        const file = document.getElementById('dream-file').files[0];
         if (file) {
-          const path = `dreams/${Date.now()}_${file.name}`;
+          const path = `dreams/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
           const { error: upErr } = await supabase.storage.from('photos').upload(path, file);
           if (upErr) throw upErr;
           const { data } = supabase.storage.from('photos').getPublicUrl(path);
@@ -147,58 +404,149 @@
         }
 
         const { error: dbErr } = await supabase.from('dreams').insert([{
-          emoji: document.getElementById('admin-dream-emoji').value.trim() || '✨',
-          title: document.getElementById('admin-dream-title').value.trim(),
-          tag: document.getElementById('admin-dream-tag').value.trim() || 'Dream',
-          description: document.getElementById('admin-dream-desc').value.trim(),
+          emoji: document.getElementById('dream-emoji').value.trim() || '✨',
+          title: document.getElementById('dream-title').value.trim(),
+          tag: document.getElementById('dream-tag').value.trim() || 'Dream',
+          description: document.getElementById('dream-desc').value.trim(),
           image_url: imageUrl
         }]);
 
         if (dbErr) throw dbErr;
-        alert("Dream added successfully!");
+        log("Dream added successfully!", 'success');
         e.target.reset();
+        refreshData();
       } catch (err) {
-        alert("Error: " + err.message);
+        log("Failed to add dream: " + err.message, 'error');
       } finally {
-        btn.textContent = "Upload & Save Dream";
+        btn.textContent = "Save Dream";
         btn.disabled = false;
       }
     }
 
-    async function handleUploadSong(e) {
+    async function handleCreateSong(e) {
       e.preventDefault();
       const btn = document.getElementById('song-submit-btn');
-      btn.textContent = "Uploading...";
+      btn.textContent = "Uploading audio...";
       btn.disabled = true;
 
       try {
-        const file = document.getElementById('admin-song-file').files[0];
+        const file = document.getElementById('song-file').files[0];
         if (!file) throw new Error("Please select an audio file.");
 
-        const path = `songs/${Date.now()}_${file.name}`;
+        const path = `songs/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
         const { error: upErr } = await supabase.storage.from('music').upload(path, file);
         if (upErr) throw upErr;
 
         const { data } = supabase.storage.from('music').getPublicUrl(path);
 
         const { error: dbErr } = await supabase.from('songs').insert([{
-          title: document.getElementById('admin-song-title').value.trim(),
-          artist: document.getElementById('admin-song-artist').value.trim(),
+          title: document.getElementById('song-title').value.trim(),
+          artist: document.getElementById('song-artist').value.trim(),
           url: data.publicUrl
         }]);
 
         if (dbErr) throw dbErr;
-        alert("Song uploaded to bucket & added to playlist!");
+        log("Audio file uploaded to bucket & recorded in database!", 'success');
         e.target.reset();
+        refreshData();
       } catch (err) {
-        alert("Error: " + err.message);
+        log("Failed to upload song: " + err.message, 'error');
       } finally {
         btn.textContent = "Upload & Save Song";
         btn.disabled = false;
       }
     }
 
-    lucide.createIcons();
+    async function deleteRecord(table, id) {
+      if (!confirm(`Delete this row from ${table}?`)) return;
+      const { error } = await supabase.from(table).delete().eq('id', id);
+      if (error) {
+        log(`Delete error: ${error.message}`, 'error');
+      } else {
+        log(`Row removed from ${table}`, 'success');
+        refreshData();
+      }
+    }
+
+    // --- 5. DATA REFRESH & DASHBOARD UI ---
+    async function refreshData() {
+      // 1. Memories
+      const { data: mems } = await supabase.from('memories').select('*').order('date', { ascending: false });
+      document.getElementById('stat-memories').textContent = mems ? mems.length : 0;
+      document.getElementById('list-memories').innerHTML = (mems || []).map(m => `
+        <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between text-xs">
+          <div class="flex items-center gap-3 truncate">
+            <span class="px-2 py-0.5 rounded bg-surface border border-borderGlow text-[10px] font-mono">${m.date || 'No date'}</span>
+            <span class="font-bold text-white truncate">${m.title}</span>
+            <span class="text-stone-400 truncate hidden sm:inline font-mono">(${m.tag})</span>
+          </div>
+          <button onclick="deleteRecord('memories', '${m.id}')" class="p-1.5 text-stone-400 hover:text-red-400 transition">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `).join('');
+
+      // 2. Dreams
+      const { data: dreams } = await supabase.from('dreams').select('*').order('created_at', { ascending: false });
+      document.getElementById('stat-dreams').textContent = dreams ? dreams.length : 0;
+      document.getElementById('list-dreams').innerHTML = (dreams || []).map(d => `
+        <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between text-xs">
+          <div class="flex items-center gap-3 truncate">
+            <span class="text-base">${d.emoji || '✨'}</span>
+            <span class="font-bold text-white truncate">${d.title}</span>
+            <span class="text-stone-400 truncate hidden sm:inline font-mono">(${d.tag})</span>
+          </div>
+          <button onclick="deleteRecord('dreams', '${d.id}')" class="p-1.5 text-stone-400 hover:text-red-400 transition">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `).join('');
+
+      // 3. Songs
+      const { data: songs } = await supabase.from('songs').select('*').order('created_at', { ascending: true });
+      document.getElementById('stat-songs').textContent = songs ? songs.length : 0;
+      document.getElementById('list-songs').innerHTML = (songs || []).map(s => `
+        <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between text-xs">
+          <div class="flex items-center gap-3 truncate">
+            <i data-lucide="music" class="w-4 h-4 text-purple-400 flex-shrink-0"></i>
+            <span class="font-bold text-white truncate">${s.title}</span>
+            <span class="text-stone-400 truncate hidden sm:inline font-mono">— ${s.artist}</span>
+          </div>
+          <button onclick="deleteRecord('songs', '${s.id}')" class="p-1.5 text-stone-400 hover:text-red-400 transition">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    function switchTab(tab) {
+      ['memories', 'dreams', 'songs'].forEach(t => {
+        document.getElementById(`panel-${t}`).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (t === tab) {
+          btn.className = "pb-3 border-b-2 border-blush-400 text-white flex items-center gap-2";
+        } else {
+          btn.className = "pb-3 border-b-2 border-transparent text-stone-400 hover:text-white flex items-center gap-2";
+        }
+      });
+    }
+
+    function initAdminDashboard() {
+      document.getElementById('project-url-badge').textContent = SUPABASE_URL.replace('https://', '');
+      refreshData();
+    }
+
+    // Auto-login if valid session exists
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      if (sessionStorage.getItem('sanctuary_admin_auth') === 'true') {
+        document.body.classList.remove('admin-locked');
+        document.getElementById('admin-gate').style.display = 'none';
+        initAdminDashboard();
+      }
+    });
   </script>
 </body>
 </html>
