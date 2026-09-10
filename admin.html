@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <!-- Tailwind CSS & Lucide -->
+  <!-- Tailwind CSS, Lucide & Supabase -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -23,6 +23,7 @@
             obsidian: '#120D10',
             rosewood: '#1E1418',
             surface: '#291C22',
+            surfaceLight: '#38262F',
             borderGlow: '#422A34',
             blush: {
               400: '#E78895',
@@ -61,11 +62,11 @@
 
 <body class="bg-obsidian text-stone-200 font-sans antialiased min-h-screen admin-locked selection:bg-blush-500 selection:text-white">
 
-  <!-- ==================== 1. ADMIN PASSCODE LOCKSCREEN ==================== -->
+  <!-- ==================== 1. ADMIN PASSCODE GATEWAY ==================== -->
   <div id="admin-gate" class="fixed inset-0 z-50 flex items-center justify-center bg-obsidian/95 backdrop-blur-2xl p-4">
     <div class="glass-panel w-full max-w-sm p-8 rounded-3xl text-center space-y-6 shadow-2xl border border-borderGlow">
-      <div class="w-14 h-14 mx-auto rounded-2xl bg-surface border border-borderGlow flex items-center justify-center text-blush-400">
-        <i data-lucide="shield-lock" class="w-7 h-7"></i>
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-surface border border-borderGlow flex items-center justify-center text-blush-400">
+        <i data-lucide="lock" class="w-8 h-8"></i>
       </div>
       <div>
         <h2 class="font-serif text-2xl font-bold text-white tracking-tight">Restricted Access</h2>
@@ -82,14 +83,81 @@
           class="w-full px-4 py-3 text-center text-sm tracking-widest rounded-2xl bg-surface/80 border border-borderGlow text-white placeholder-stone-500 focus:outline-none focus:border-blush-400 font-mono"
         />
         <p id="admin-auth-err" class="text-xs text-rose-400 font-medium hidden">Access Denied: Invalid passcode.</p>
-        <button type="submit" class="w-full py-3 bg-gradient-to-r from-blush-500 to-blush-600 hover:from-blush-600 hover:to-blush-700 text-white font-semibold text-xs rounded-2xl uppercase tracking-wider transition shadow-lg shadow-blush-500/20 active:scale-95">
-          Authenticate
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-blush-500 to-blush-600 hover:from-blush-600 hover:to-blush-700 text-white font-semibold text-xs rounded-2xl uppercase tracking-wider transition shadow-lg shadow-blush-500/20 active:scale-95 flex items-center justify-center gap-2">
+          <span>Authenticate</span>
+          <i data-lucide="key-round" class="w-4 h-4"></i>
         </button>
       </form>
     </div>
   </div>
 
-  <!-- ==================== 2. MAIN ADMIN DASHBOARD ==================== -->
+  <!-- ==================== 2. EDIT MODAL WITH COMPARATIVE PREVIEWS ==================== -->
+  <div id="edit-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300">
+    <div class="glass-panel bg-rosewood/95 w-full max-w-lg p-6 sm:p-8 rounded-3xl border border-borderGlow shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto" id="edit-modal-card">
+      <div class="flex items-center justify-between border-b border-borderGlow pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-surface flex items-center justify-center text-blush-400">
+            <i data-lucide="pencil" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 id="edit-modal-title" class="font-serif text-lg font-bold text-white">Modify Entry</h3>
+            <p class="text-[11px] font-mono text-stone-400" id="edit-modal-subtitle">Update record details in Supabase</p>
+          </div>
+        </div>
+        <button onclick="closeEditModal()" class="text-stone-400 hover:text-white p-1 rounded-lg hover:bg-surface transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="edit-record-form" onsubmit="handleSaveEdit(event)" class="space-y-4 text-left">
+        <input type="hidden" id="edit-id" />
+        <input type="hidden" id="edit-table" />
+        <input type="hidden" id="edit-existing-url" />
+
+        <!-- Dynamic Inputs -->
+        <div id="edit-fields-container" class="space-y-3"></div>
+
+        <!-- Visual Media Preview Container -->
+        <div id="edit-media-section" class="space-y-3 pt-1 border-t border-borderGlow/60">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="edit-previews-grid">
+            <!-- 1. Existing Media -->
+            <div id="edit-current-preview-box" class="space-y-1.5">
+              <span class="block text-[10px] font-mono uppercase tracking-wider text-stone-400">Current Image</span>
+              <div class="relative aspect-video rounded-2xl overflow-hidden bg-surface border border-borderGlow flex items-center justify-center">
+                <img id="edit-current-preview-img" src="" alt="Current Image" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=400&q=80'" />
+              </div>
+            </div>
+
+            <!-- 2. Newly Selected Replacement Media -->
+            <div id="edit-new-preview-box" class="space-y-1.5 hidden">
+              <span class="block text-[10px] font-mono uppercase tracking-wider text-blush-400">Selected Replacement</span>
+              <div class="relative aspect-video rounded-2xl overflow-hidden bg-surface border-2 border-blush-500/60 shadow-lg shadow-blush-500/10 flex items-center justify-center">
+                <img id="edit-new-preview-img" src="" alt="New Selection Preview" class="w-full h-full object-cover" />
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-[11px] font-mono uppercase tracking-wider text-stone-400">Upload Replacement File</label>
+            <input type="file" id="edit-file" onchange="handleEditFileChange(event)" class="w-full text-xs text-stone-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-surface file:text-blush-400 file:font-semibold cursor-pointer" />
+            <p class="text-[10px] text-stone-500 font-mono">Leave empty to keep the existing file unchanged.</p>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-3 border-t border-borderGlow">
+          <button type="button" onclick="closeEditModal()" class="px-4 py-2.5 rounded-xl bg-surface hover:bg-surfaceLight text-xs font-semibold text-stone-300 transition">
+            Cancel
+          </button>
+          <button type="submit" id="edit-save-btn" class="px-6 py-2.5 bg-blush-500 hover:bg-blush-600 text-white rounded-xl text-xs font-semibold uppercase tracking-wider transition flex items-center gap-2">
+            <i data-lucide="save" class="w-4 h-4"></i>
+            <span>Save Changes</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== 3. MAIN ADMIN DASHBOARD ==================== -->
   <div id="admin-app" class="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-10">
 
     <!-- Top Bar -->
@@ -114,32 +182,39 @@
       </div>
     </header>
 
-    <!-- Stat Metrics -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <!-- Metrics -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
       <div class="glass-panel p-5 rounded-2xl flex items-center justify-between">
         <div>
-          <p class="text-[11px] font-mono uppercase tracking-wider text-stone-400">Memories in DB</p>
+          <p class="text-[11px] font-mono uppercase tracking-wider text-stone-400">Memories</p>
           <p id="stat-memories" class="text-2xl font-bold text-white mt-0.5">0</p>
         </div>
-        <i data-lucide="camera" class="w-8 h-8 text-blush-400/50"></i>
+        <i data-lucide="camera" class="w-7 h-7 text-blush-400/50"></i>
       </div>
       <div class="glass-panel p-5 rounded-2xl flex items-center justify-between">
         <div>
-          <p class="text-[11px] font-mono uppercase tracking-wider text-stone-400">Dreams in DB</p>
+          <p class="text-[11px] font-mono uppercase tracking-wider text-stone-400">Dreams</p>
           <p id="stat-dreams" class="text-2xl font-bold text-white mt-0.5">0</p>
         </div>
-        <i data-lucide="sparkles" class="w-8 h-8 text-champagne-300/50"></i>
+        <i data-lucide="sparkles" class="w-7 h-7 text-champagne-300/50"></i>
       </div>
       <div class="glass-panel p-5 rounded-2xl flex items-center justify-between">
         <div>
-          <p class="text-[11px] font-mono uppercase tracking-wider text-stone-400">Songs in Playlist</p>
+          <p class="text-[11px] font-mono uppercase tracking-wider text-stone-400">Songs</p>
           <p id="stat-songs" class="text-2xl font-bold text-white mt-0.5">0</p>
         </div>
-        <i data-lucide="music" class="w-8 h-8 text-purple-400/50"></i>
+        <i data-lucide="music" class="w-7 h-7 text-purple-400/50"></i>
+      </div>
+      <div class="glass-panel p-5 rounded-2xl flex items-center justify-between">
+        <div>
+          <p class="text-[11px] font-mono uppercase tracking-wider text-stone-400">Views</p>
+          <p id="stat-views" class="text-2xl font-bold text-white mt-0.5">0</p>
+        </div>
+        <i data-lucide="image" class="w-7 h-7 text-blush-500/50"></i>
       </div>
     </div>
 
-    <!-- ONE-CLICK SYNC MIGRATION SECTION -->
+    <!-- DB SYNC ENGINE -->
     <div class="glass-panel p-6 rounded-3xl border border-borderGlow space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -147,30 +222,32 @@
             <i data-lucide="refresh-cw" class="w-4 h-4 text-blush-400"></i>
             Database Synchronization Engine
           </h3>
-          <p class="text-xs text-stone-400 mt-0.5">Push default memories, dreams, and audio records to Supabase tables.</p>
+          <p class="text-xs text-stone-400 mt-0.5">Sync previous songs, memories, and dreams from browser storage into Supabase tables.</p>
         </div>
         <button onclick="runManualSync()" id="sync-btn" class="px-5 py-2.5 bg-surface hover:bg-surface/80 border border-blush-500/40 text-blush-400 text-xs font-semibold rounded-xl transition flex items-center gap-2 shadow-lg shadow-blush-500/10 active:scale-95">
           <i data-lucide="upload-cloud" class="w-4 h-4"></i>
-          <span>Sync Default Content Now</span>
+          <span>Sync Content to Supabase</span>
         </button>
       </div>
 
-      <!-- Live Terminal Output -->
       <div class="bg-obsidian/90 border border-borderGlow p-3.5 rounded-xl font-mono text-xs text-stone-400 max-h-36 overflow-y-auto space-y-1" id="sync-console">
-        <p class="text-stone-500">System idle. Ready to synchronize data...</p>
+        <p class="text-stone-500">System ready. Click "Sync Content to Supabase" to push local data or defaults.</p>
       </div>
     </div>
 
     <!-- TABS -->
-    <div class="flex border-b border-borderGlow text-xs font-semibold gap-6">
-      <button onclick="switchTab('memories')" id="tab-btn-memories" class="pb-3 border-b-2 border-blush-400 text-white flex items-center gap-2">
+    <div class="flex border-b border-borderGlow text-xs font-semibold gap-6 overflow-x-auto pb-1">
+      <button onclick="switchTab('memories')" id="tab-btn-memories" class="pb-3 border-b-2 border-blush-400 text-white flex items-center gap-2 flex-shrink-0">
         <i data-lucide="camera" class="w-4 h-4 text-blush-400"></i> Memories
       </button>
-      <button onclick="switchTab('dreams')" id="tab-btn-dreams" class="pb-3 border-b-2 border-transparent text-stone-400 hover:text-white flex items-center gap-2">
+      <button onclick="switchTab('dreams')" id="tab-btn-dreams" class="pb-3 border-b-2 border-transparent text-stone-400 hover:text-white flex items-center gap-2 flex-shrink-0">
         <i data-lucide="sparkles" class="w-4 h-4 text-champagne-300"></i> Dreams
       </button>
-      <button onclick="switchTab('songs')" id="tab-btn-songs" class="pb-3 border-b-2 border-transparent text-stone-400 hover:text-white flex items-center gap-2">
+      <button onclick="switchTab('songs')" id="tab-btn-songs" class="pb-3 border-b-2 border-transparent text-stone-400 hover:text-white flex items-center gap-2 flex-shrink-0">
         <i data-lucide="music" class="w-4 h-4 text-purple-400"></i> Music Queue
+      </button>
+      <button onclick="switchTab('views')" id="tab-btn-views" class="pb-3 border-b-2 border-transparent text-stone-400 hover:text-white flex items-center gap-2 flex-shrink-0">
+        <i data-lucide="image" class="w-4 h-4 text-blush-400"></i> Favorite Views
       </button>
     </div>
 
@@ -186,15 +263,26 @@
           <input type="text" id="mem-tag" placeholder="Tag (e.g. MINEEE 💍)" class="p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white focus:outline-none focus:border-blush-400" />
           <input type="text" id="mem-caption" placeholder="Love quote / caption" class="p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white focus:outline-none focus:border-blush-400" />
         </div>
-        <div class="space-y-1">
-          <label class="block text-[11px] text-stone-400">Select Image File (Uploaded directly to Supabase 'photos' bucket)</label>
-          <input type="file" id="mem-file" accept="image/*" class="w-full text-xs text-stone-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-surface file:text-blush-400 file:font-semibold cursor-pointer" />
+        <div class="space-y-2">
+          <label class="block text-[11px] text-stone-400 font-mono">Photo (Uploaded to 'photos' bucket)</label>
+          <input type="file" id="mem-file" accept="image/*" onchange="previewFile(this, 'mem-create-preview-box', 'mem-create-preview-img')" class="w-full text-xs text-stone-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-surface file:text-blush-400 file:font-semibold cursor-pointer" />
+          
+          <div id="mem-create-preview-box" class="hidden p-2.5 rounded-2xl bg-surface border border-borderGlow flex items-center gap-3">
+            <img id="mem-create-preview-img" src="" alt="Selected Preview" class="w-14 h-14 rounded-xl object-cover border border-borderGlow" />
+            <div class="text-xs">
+              <span class="text-stone-200 font-medium block">Selected Image Preview</span>
+              <span class="text-[10px] text-stone-400 font-mono">Ready to upload to 'photos'</span>
+            </div>
+          </div>
         </div>
         <button type="submit" id="mem-submit-btn" class="px-6 py-2.5 bg-blush-500 hover:bg-blush-600 text-white rounded-xl text-xs font-semibold uppercase tracking-wider transition">
           Save Memory
         </button>
       </form>
-      <div id="list-memories" class="space-y-2"></div>
+      <div class="space-y-2">
+        <h5 class="text-xs font-mono uppercase tracking-wider text-stone-400">Current Memories (Click pencil to edit, trash to delete)</h5>
+        <div id="list-memories" class="space-y-2"></div>
+      </div>
     </div>
 
     <!-- PANEL 2: DREAMS -->
@@ -207,15 +295,26 @@
         </div>
         <input type="text" id="dream-tag" placeholder="Tag Name (e.g. Our Future)" class="w-full p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white" />
         <textarea id="dream-desc" placeholder="Why this means the world to us..." rows="2" class="w-full p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white"></textarea>
-        <div class="space-y-1">
-          <label class="block text-[11px] text-stone-400">Dream Photo (Optional - Uploads to 'photos' bucket)</label>
-          <input type="file" id="dream-file" accept="image/*" class="w-full text-xs text-stone-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-surface file:text-champagne-300 file:font-semibold cursor-pointer" />
+        <div class="space-y-2">
+          <label class="block text-[11px] text-stone-400 font-mono">Dream Photo (Optional - Uploads to 'photos' bucket)</label>
+          <input type="file" id="dream-file" accept="image/*" onchange="previewFile(this, 'dream-create-preview-box', 'dream-create-preview-img')" class="w-full text-xs text-stone-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-surface file:text-champagne-300 file:font-semibold cursor-pointer" />
+          
+          <div id="dream-create-preview-box" class="hidden p-2.5 rounded-2xl bg-surface border border-borderGlow flex items-center gap-3">
+            <img id="dream-create-preview-img" src="" alt="Selected Preview" class="w-14 h-14 rounded-xl object-cover border border-borderGlow" />
+            <div class="text-xs">
+              <span class="text-stone-200 font-medium block">Selected Dream Image</span>
+              <span class="text-[10px] text-stone-400 font-mono">Ready to upload to 'photos'</span>
+            </div>
+          </div>
         </div>
         <button type="submit" id="dream-submit-btn" class="px-6 py-2.5 bg-champagne-400 hover:bg-champagne-300 text-obsidian rounded-xl text-xs font-semibold uppercase tracking-wider transition">
           Save Dream
         </button>
       </form>
-      <div id="list-dreams" class="space-y-2"></div>
+      <div class="space-y-2">
+        <h5 class="text-xs font-mono uppercase tracking-wider text-stone-400">Current Dreams (Click pencil to edit, trash to delete)</h5>
+        <div id="list-dreams" class="space-y-2"></div>
+      </div>
     </div>
 
     <!-- PANEL 3: SONGS -->
@@ -227,27 +326,65 @@
           <input type="text" id="song-artist" placeholder="Artist *" required class="p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white focus:outline-none focus:border-blush-400" />
         </div>
         <div class="space-y-1">
-          <label class="block text-[11px] text-stone-400">Select Audio File (.mp3/.wav - Uploaded directly to 'music' bucket)</label>
+          <label class="block text-[11px] text-stone-400 font-mono">Audio File (.mp3/.wav - Uploaded to 'music' bucket)</label>
           <input type="file" id="song-file" accept="audio/*" required class="w-full text-xs text-stone-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-surface file:text-purple-400 file:font-semibold cursor-pointer" />
         </div>
         <button type="submit" id="song-submit-btn" class="px-6 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl text-xs font-semibold uppercase tracking-wider transition">
           Upload & Save Song
         </button>
       </form>
-      <div id="list-songs" class="space-y-2"></div>
+      <div class="space-y-2">
+        <h5 class="text-xs font-mono uppercase tracking-wider text-stone-400">Current Songs (Click pencil to edit, trash to delete)</h5>
+        <div id="list-songs" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- PANEL 4: FAVORITE VIEWS -->
+    <div id="panel-views" class="space-y-6 hidden">
+      <form onsubmit="handleCreateFavoriteView(event)" class="glass-panel p-6 rounded-3xl space-y-4">
+        <h4 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Add Favorite View Polaroid</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input type="text" id="view-badge" placeholder="Badge Label (default: My Favorite View)" class="p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white focus:outline-none focus:border-blush-400" />
+          <input type="text" id="view-quote" placeholder="Quote / Note under photo *" required class="p-3 bg-surface border border-borderGlow rounded-xl text-xs text-white focus:outline-none focus:border-blush-400" />
+        </div>
+        <div class="space-y-2">
+          <label class="block text-[11px] text-stone-400 font-mono">Polaroid Photo * (Uploaded to 'photos' bucket)</label>
+          <input type="file" id="view-file" accept="image/*" required onchange="previewFile(this, 'view-create-preview-box', 'view-create-preview-img')" class="w-full text-xs text-stone-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-surface file:text-blush-400 file:font-semibold cursor-pointer" />
+          
+          <div id="view-create-preview-box" class="hidden p-2.5 rounded-2xl bg-surface border border-borderGlow flex items-center gap-3">
+            <img id="view-create-preview-img" src="" alt="Selected Preview" class="w-14 h-14 rounded-xl object-cover border border-borderGlow" />
+            <div class="text-xs">
+              <span class="text-stone-200 font-medium block">Polaroid Preview</span>
+              <span class="text-[10px] text-stone-400 font-mono">Ready to upload</span>
+            </div>
+          </div>
+        </div>
+        <button type="submit" id="view-submit-btn" class="px-6 py-2.5 bg-blush-500 hover:bg-blush-600 text-white rounded-xl text-xs font-semibold uppercase tracking-wider transition">
+          Save Favorite View
+        </button>
+      </form>
+      <div class="space-y-2">
+        <h5 class="text-xs font-mono uppercase tracking-wider text-stone-400">Current Views (If > 1, visitors can flip through cards on index.html)</h5>
+        <div id="list-views" class="space-y-2"></div>
+      </div>
     </div>
 
   </div>
 
   <!-- ==================== LOGIC ENGINE ==================== -->
   <script>
-    // Master Admin Password Hash (default matches your visitor passcode hash, or change as needed)
     const ADMIN_PASSCODE_HASH = "7ad938a2c26edc6be22bcb1c2b17e1140c40257e2e2ec052db5bcee7f66aba08";
-
     const SUPABASE_URL = "https://idlhbjoxxskzmvzrhjpb.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_0NiaQQkwoIcttLrvBEzAqg_t5vaBgAY";
 
-    const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+    let currentCache = {
+      memories: [],
+      dreams: [],
+      songs: [],
+      views: []
+    };
 
     // --- 1. ADMIN GATE SECURITY ---
     async function sha256(str) {
@@ -256,11 +393,12 @@
     }
 
     async function handleAdminLogin(e) {
-      e.preventDefault();
+      if (e) e.preventDefault();
       const input = document.getElementById('admin-pass-input');
-      const hash = await sha256(input.value);
+      const val = input.value.trim();
+      const hash = await sha256(val);
 
-      if (hash === ADMIN_PASSCODE_HASH || input.value.trim() === ADMIN_PASSCODE_HASH) {
+      if (hash === ADMIN_PASSCODE_HASH || val === ADMIN_PASSCODE_HASH) {
         sessionStorage.setItem('sanctuary_admin_auth', 'true');
         document.body.classList.remove('admin-locked');
         document.getElementById('admin-gate').style.display = 'none';
@@ -268,6 +406,7 @@
       } else {
         document.getElementById('admin-auth-err').classList.remove('hidden');
         input.value = '';
+        input.focus();
       }
     }
 
@@ -276,70 +415,157 @@
       window.location.reload();
     }
 
-    // --- 2. LOGGER UTILITY ---
+    // --- 2. PREVIEW UTILITY HELPERS ---
+    function previewFile(input, containerId, imgId) {
+      const file = input.files[0];
+      const container = document.getElementById(containerId);
+      const img = document.getElementById(imgId);
+
+      if (file && file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        img.src = url;
+        container.classList.remove('hidden');
+      } else {
+        container.classList.add('hidden');
+        img.src = '';
+      }
+    }
+
+    function handleEditFileChange(e) {
+      const file = e.target.files[0];
+      const newPreviewBox = document.getElementById('edit-new-preview-box');
+      const newPreviewImg = document.getElementById('edit-new-preview-img');
+
+      if (file && file.type.startsWith('image/')) {
+        newPreviewImg.src = URL.createObjectURL(file);
+        newPreviewBox.classList.remove('hidden');
+      } else {
+        newPreviewBox.classList.add('hidden');
+        newPreviewImg.src = '';
+      }
+    }
+
     function log(msg, type = 'info') {
       const c = document.getElementById('sync-console');
+      if (!c) return;
       const time = new Date().toLocaleTimeString();
       const color = type === 'error' ? 'text-red-400' : (type === 'success' ? 'text-green-400' : 'text-stone-300');
       c.innerHTML += `<p class="${color}">[${time}] ${msg}</p>`;
       c.scrollTop = c.scrollHeight;
     }
 
-    // --- 3. SEED / AUTO-MIGRATION ENGINE ---
+    // --- 3. SEED & SYNCHRONIZATION ENGINE ---
     const defaultMemories = [
       { title: 'What makes me happy?', date: '2026-03-13', tag: 'MINEEE 💍', caption: 'Every moment with you makes me feel special beacause you feel like a long lost part of me which makes me complete 💕💕', image_url: 'memory1.jpg' },
       { title: 'My Cute Babieeee', date: '2025-12-12', tag: 'Special dayyy 🍷', caption: 'Whenever im with you, im never alone. you make me feel so happy like im some celebrity but tbh, i just want to be YOURS ❤️', image_url: 'memory2.jpg' },
       { title: 'Ummmmmah', date: '2026-08-14', tag: 'Goofy Moments 🤪', caption: 'You brings out the kid in me (idk the date😭)', image_url: 'memory3.jpg' }
     ];
-
+    
     const defaultDreams = [
       { emoji: '❤️', title: 'My Second Love', tag: 'Our little cuteness', description: 'Our daughter will look like this and we will be the best parents anyone can ever wish for ❤️❤️', image_url: 'babieee.jpg' },
       { emoji: '🌻🌻', title: 'Together and Forever', tag: 'Our Goal', description: 'No matter what happens, we stay together, we fight together and we fix together cuz you\'re my wifey and i love you the most. just like this💕', image_url: 'dream2.jpg' }
     ];
-
+    
     const defaultSongs = [
       { title: 'Accidently in LOVE', artist: 'Counting Crows', url: 'Accidently in Love.mp3' },
       { title: 'Make you MINE', artist: 'PUBLIC', url: 'Make you MINE.mp3' },
       { title: 'You & I', artist: 'One Direection', url: 'You & I.mp3' }
     ];
-
+    
+    const defaultFavoriteView = {
+      badge: 'My Favorite View',
+      quote: 'No matter where life takes us, my heart will always beat for you.',
+      image_url: 'cover.jpg'
+    };
+    
     async function runManualSync() {
+      if (!supabaseClient) {
+        log("Supabase client not initialized.", 'error');
+        return;
+      }
+    
       const btn = document.getElementById('sync-btn');
       btn.disabled = true;
-      log("Starting database synchronization...", 'info');
-
+      log("Scanning local storage & synchronizing to Supabase...", 'info');
+    
       try {
-        // Sync Memories
-        const { count: mCount } = await supabase.from('memories').select('*', { count: 'exact', head: true });
-        if (mCount === 0) {
-          const { error } = await supabase.from('memories').insert(defaultMemories);
-          if (error) throw new Error("Memories table insert: " + error.message);
-          log("✓ Inserted 3 default memories into table 'memories'", 'success');
+        // 1. Sync Songs
+        const localSongRaw = localStorage.getItem('sanctuary_song_queue');
+        const sourceSongs = localSongRaw ? JSON.parse(localSongRaw) : defaultSongs;
+        const { data: existingSongs } = await supabaseClient.from('songs').select('title');
+        const songTitles = new Set((existingSongs || []).map(s => s.title.toLowerCase().trim()));
+        const songsToInsert = sourceSongs
+          .filter(s => !songTitles.has((s.title || '').toLowerCase().trim()))
+          .map(s => ({ title: s.title || 'Untitled Track', artist: s.artist || 'Unknown', url: s.url || s.src || '' }));
+    
+        if (songsToInsert.length > 0) {
+          const { error: sErr } = await supabaseClient.from('songs').insert(songsToInsert);
+          if (sErr) throw new Error("Songs insert: " + sErr.message);
+          log(`✓ Migrated ${songsToInsert.length} song(s) into Supabase`, 'success');
         } else {
-          log(`• Table 'memories' already contains ${mCount} rows (skipped)`, 'info');
+          log(`• Songs table already up to date`, 'info');
         }
-
-        // Sync Dreams
-        const { count: dCount } = await supabase.from('dreams').select('*', { count: 'exact', head: true });
-        if (dCount === 0) {
-          const { error } = await supabase.from('dreams').insert(defaultDreams);
-          if (error) throw new Error("Dreams table insert: " + error.message);
-          log("✓ Inserted 2 default dreams into table 'dreams'", 'success');
+    
+        // 2. Sync Memories
+        const localMemRaw = localStorage.getItem('sanctuary_memories');
+        const sourceMems = localMemRaw ? JSON.parse(localMemRaw) : defaultMemories;
+        const { data: existingMems } = await supabaseClient.from('memories').select('title');
+        const memTitles = new Set((existingMems || []).map(m => m.title.toLowerCase().trim()));
+        const memsToInsert = sourceMems
+          .filter(m => !memTitles.has((m.title || '').toLowerCase().trim()))
+          .map(m => ({ title: m.title, date: m.date || new Date().toISOString().split('T')[0], tag: m.tag || 'Memory', caption: m.caption || m.title, image_url: m.image_url || m.image || 'memory1.jpg' }));
+    
+        if (memsToInsert.length > 0) {
+          const { error: mErr } = await supabaseClient.from('memories').insert(memsToInsert);
+          if (mErr) throw new Error("Memories insert: " + mErr.message);
+          log(`✓ Migrated ${memsToInsert.length} memory row(s) into Supabase`, 'success');
         } else {
-          log(`• Table 'dreams' already contains ${dCount} rows (skipped)`, 'info');
+          log(`• Memories table already up to date`, 'info');
         }
-
-        // Sync Songs
-        const { count: sCount } = await supabase.from('songs').select('*', { count: 'exact', head: true });
-        if (sCount === 0) {
-          const { error } = await supabase.from('songs').insert(defaultSongs);
-          if (error) throw new Error("Songs table insert: " + error.message);
-          log("✓ Inserted 3 default tracks into table 'songs'", 'success');
+    
+        // 3. Sync Dreams
+        const localDreamRaw = localStorage.getItem('sanctuary_dreams');
+        const sourceDreams = localDreamRaw ? JSON.parse(localDreamRaw) : defaultDreams;
+        const { data: existingDreams } = await supabaseClient.from('dreams').select('title');
+        const dreamTitles = new Set((existingDreams || []).map(d => d.title.toLowerCase().trim()));
+        const dreamsToInsert = sourceDreams
+          .filter(d => !dreamTitles.has((d.title || '').toLowerCase().trim()))
+          .map(d => ({ emoji: d.emoji || '✨', title: d.title, tag: d.tag || 'Dream', description: d.description || d.desc || '', image_url: d.image_url || d.image || 'babieee.jpg' }));
+    
+        if (dreamsToInsert.length > 0) {
+          const { error: dErr } = await supabaseClient.from('dreams').insert(dreamsToInsert);
+          if (dErr) throw new Error("Dreams insert: " + dErr.message);
+          log(`✓ Migrated ${dreamsToInsert.length} dream row(s) into Supabase`, 'success');
         } else {
-          log(`• Table 'songs' already contains ${sCount} rows (skipped)`, 'info');
+          log(`• Dreams table already up to date`, 'info');
         }
-
-        log("Synchronization completed successfully!", 'success');
+    
+        // 4. Sync Favorite View (Hero)
+        const localHeroRaw = localStorage.getItem('sanctuary_hero_custom');
+        let heroToSync = defaultFavoriteView;
+        if (localHeroRaw) {
+          try {
+            const parsed = JSON.parse(localHeroRaw);
+            heroToSync = {
+              badge: parsed.badge || defaultFavoriteView.badge,
+              quote: parsed.quote || defaultFavoriteView.quote,
+              image_url: parsed.image || defaultFavoriteView.image_url
+            };
+          } catch (e) {}
+        }
+    
+        const { count: vCount, error: vErr } = await supabaseClient.from('favorite_views').select('*', { count: 'exact', head: true });
+        if (vErr) throw new Error("Favorite views check: " + vErr.message);
+    
+        if (vCount === 0) {
+          const { error: insVErr } = await supabaseClient.from('favorite_views').insert([heroToSync]);
+          if (insVErr) throw new Error("Favorite views insert: " + insVErr.message);
+          log("✓ Synced favorite view into 'favorite_views'", 'success');
+        } else {
+          log(`• Favorite views table already has ${vCount} view(s)`, 'info');
+        }
+    
+        log("Database synchronization complete!", 'success');
         refreshData();
       } catch (err) {
         log("Sync error: " + err.message, 'error');
@@ -348,7 +574,7 @@
       }
     }
 
-    // --- 4. UPLOADS & MUTATIONS ---
+    // --- 4. CREATE NEW ENTITIES ---
     async function handleCreateMemory(e) {
       e.preventDefault();
       const btn = document.getElementById('mem-submit-btn');
@@ -360,13 +586,13 @@
         const file = document.getElementById('mem-file').files[0];
         if (file) {
           const path = `memories/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-          const { error: upErr } = await supabase.storage.from('photos').upload(path, file);
+          const { error: upErr } = await supabaseClient.storage.from('photos').upload(path, file);
           if (upErr) throw upErr;
-          const { data } = supabase.storage.from('photos').getPublicUrl(path);
+          const { data } = supabaseClient.storage.from('photos').getPublicUrl(path);
           imageUrl = data.publicUrl;
         }
 
-        const { error: dbErr } = await supabase.from('memories').insert([{
+        const { error: dbErr } = await supabaseClient.from('memories').insert([{
           title: document.getElementById('mem-title').value.trim(),
           date: document.getElementById('mem-date').value,
           tag: document.getElementById('mem-tag').value.trim() || 'Memory',
@@ -375,11 +601,12 @@
         }]);
 
         if (dbErr) throw dbErr;
-        log("Memory added successfully!", 'success');
+        log("Memory created successfully!", 'success');
         e.target.reset();
+        document.getElementById('mem-create-preview-box').classList.add('hidden');
         refreshData();
       } catch (err) {
-        log("Failed to add memory: " + err.message, 'error');
+        log("Failed to create memory: " + err.message, 'error');
       } finally {
         btn.textContent = "Save Memory";
         btn.disabled = false;
@@ -397,13 +624,13 @@
         const file = document.getElementById('dream-file').files[0];
         if (file) {
           const path = `dreams/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-          const { error: upErr } = await supabase.storage.from('photos').upload(path, file);
+          const { error: upErr } = await supabaseClient.storage.from('photos').upload(path, file);
           if (upErr) throw upErr;
-          const { data } = supabase.storage.from('photos').getPublicUrl(path);
+          const { data } = supabaseClient.storage.from('photos').getPublicUrl(path);
           imageUrl = data.publicUrl;
         }
 
-        const { error: dbErr } = await supabase.from('dreams').insert([{
+        const { error: dbErr } = await supabaseClient.from('dreams').insert([{
           emoji: document.getElementById('dream-emoji').value.trim() || '✨',
           title: document.getElementById('dream-title').value.trim(),
           tag: document.getElementById('dream-tag').value.trim() || 'Dream',
@@ -412,11 +639,12 @@
         }]);
 
         if (dbErr) throw dbErr;
-        log("Dream added successfully!", 'success');
+        log("Dream created successfully!", 'success');
         e.target.reset();
+        document.getElementById('dream-create-preview-box').classList.add('hidden');
         refreshData();
       } catch (err) {
-        log("Failed to add dream: " + err.message, 'error');
+        log("Failed to create dream: " + err.message, 'error');
       } finally {
         btn.textContent = "Save Dream";
         btn.disabled = false;
@@ -434,12 +662,12 @@
         if (!file) throw new Error("Please select an audio file.");
 
         const path = `songs/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-        const { error: upErr } = await supabase.storage.from('music').upload(path, file);
+        const { error: upErr } = await supabaseClient.storage.from('music').upload(path, file);
         if (upErr) throw upErr;
 
-        const { data } = supabase.storage.from('music').getPublicUrl(path);
+        const { data } = supabaseClient.storage.from('music').getPublicUrl(path);
 
-        const { error: dbErr } = await supabase.from('songs').insert([{
+        const { error: dbErr } = await supabaseClient.from('songs').insert([{
           title: document.getElementById('song-title').value.trim(),
           artist: document.getElementById('song-artist').value.trim(),
           url: data.publicUrl
@@ -457,64 +685,355 @@
       }
     }
 
+    async function handleCreateFavoriteView(e) {
+      e.preventDefault();
+      const btn = document.getElementById('view-submit-btn');
+      btn.textContent = "Uploading...";
+      btn.disabled = true;
+
+      try {
+        const file = document.getElementById('view-file').files[0];
+        if (!file) throw new Error("Please select an image file.");
+
+        const path = `hero/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+        const { error: upErr } = await supabaseClient.storage.from('photos').upload(path, file);
+        if (upErr) throw upErr;
+
+        const { data } = supabaseClient.storage.from('photos').getPublicUrl(path);
+
+        const { error: dbErr } = await supabaseClient.from('favorite_views').insert([{
+          badge: document.getElementById('view-badge').value.trim() || 'My Favorite View',
+          quote: document.getElementById('view-quote').value.trim(),
+          image_url: data.publicUrl
+        }]);
+
+        if (dbErr) throw dbErr;
+        log("Favorite View added to polaroid stack!", 'success');
+        e.target.reset();
+        document.getElementById('view-create-preview-box').classList.add('hidden');
+        refreshData();
+      } catch (err) {
+        log("Failed to add view: " + err.message, 'error');
+      } finally {
+        btn.textContent = "Save Favorite View";
+        btn.disabled = false;
+      }
+    }
+
+    // --- 5. MODIFY / EDIT MODAL LOGIC ---
+    function openEditModal(table, id) {
+      const modal = document.getElementById('edit-modal');
+      const fields = document.getElementById('edit-fields-container');
+      const tableInput = document.getElementById('edit-table');
+      const idInput = document.getElementById('edit-id');
+      const existingUrlInput = document.getElementById('edit-existing-url');
+      const fileInput = document.getElementById('edit-file');
+      const mediaSection = document.getElementById('edit-media-section');
+      const currentPreviewBox = document.getElementById('edit-current-preview-box');
+      const currentPreviewImg = document.getElementById('edit-current-preview-img');
+      const newPreviewBox = document.getElementById('edit-new-preview-box');
+      const newPreviewImg = document.getElementById('edit-new-preview-img');
+
+      fileInput.value = "";
+      newPreviewBox.classList.add('hidden');
+      newPreviewImg.src = "";
+
+      tableInput.value = table;
+      idInput.value = id;
+
+      const record = currentCache[table].find(r => String(r.id) === String(id));
+      if (!record) {
+        alert("Could not locate record.");
+        return;
+      }
+
+      if (table === 'memories') {
+        document.getElementById('edit-modal-title').textContent = "Modify Memory";
+        existingUrlInput.value = record.image_url || '';
+        fileInput.accept = "image/*";
+        mediaSection.classList.remove('hidden');
+
+        currentPreviewImg.src = record.image_url || 'memory1.jpg';
+        currentPreviewBox.classList.remove('hidden');
+
+        fields.innerHTML = `
+          <div>
+            <label class="block text-[11px] font-mono uppercase text-stone-400 mb-1">Title *</label>
+            <input type="text" id="edit-mem-title" value="${escapeAttr(record.title)}" required class="w-full p-2.5 bg-surface border border-borderGlow rounded-xl text-xs text-white" />
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] font-mono uppercase text-stone-400 mb-1">Date</label>
+              <input type="date" id="edit-mem-date" value="${record.date || ''}" required class="w-full p-2.5 bg-surface border border-borderGlow rounded-xl text-xs text-white" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-mono uppercase text-stone-400 mb-1">Tag</label>
+              <input type="text" id="edit-mem-tag" value="${escapeAttr(record.tag || '')}" class="w-full p-2.5 bg-surface border border-borderGlow rounded-xl text-xs text-white" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-mono uppercase text-stone-400 mb-1">Caption / Quote</label>
+            <input type="text" id="edit-mem-caption" value="${escapeAttr(record.caption || '')}" class="w-full p-2.5 bg-surface border border-borderGlow rounded-xl text-xs text-white" />
+          </div>
+        `;
+      } else if (table === 'dreams') {
+        document.getElementById('edit-modal-title').textContent = "Modify Dream";
+        existingUrlInput.value = record.image_url || '';
+        fileInput.accept = "image/*";
+        mediaSection.classList.remove('hidden');
+
+        currentPreviewImg.src = record.image_url || 'babieee.jpg';
+        currentPreviewBox.classList.remove('hidden');
+
+        fields.innerHTML = `
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block text-[11px] font-mono uppercase text-stone-400 mb-1">Emoji</label>
+              <input type="text" id="edit-dream-emoji" value="${escapeAttr(record.emoji || '✨')}" class="w-full p-2.5 bg-surface border border-borderGlow rounded-xl text-xs text-white text-center" />
+            </div>
+            <div class="col-span-2">
+              <label class="block text-[11px] font-mono uppercase text-stone-400 mb-1">Title *</label>
+              <input type="text" id="edit-dream-title" value="${escapeAttr(record.title)}" required class="w-full p-2.5 bg-surface border border-borderGlow rounded-xl text-xs text-white" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-mono uppercase text-stone-400 mb-1">Tag</label>
+            <input type="text" id="edit-dream-tag" value="${escapeAttr(record.tag || '')}" class="w-full p-2.5 bg-surface border border-borderGlow rounded-xl text-xs text-white" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-mono uppercase text-stone-400 mb-1">Description</label>
+            <textarea id="edit-dream-desc" rows="2" class="w-full p-2.5 bg-surface border border-borderGlow rounded-xl text-xs text-white">${escapeAttr(record.description || '')}</textarea>
+          </div>
+        `;
+      } else if (table === 'songs') {
+        document.getElementById('edit-modal-title').textContent = "Modify Song";
+        existingUrlInput.value = record.url || '';
+        fileInput.accept = "audio/*";
+        mediaSection.classList.remove('hidden');
+        currentPreviewBox.classList.add('hidden');
+
+        fields.innerHTML = `
+          <div>
+            <label class="block text-[11px] font-mono uppercase text-stone-400 mb-1">Track Title *</label>
+            <input type="text" id="edit-song-title" value="${escapeAttr(record.title)}" required class="w-full p-2.5 bg-surface border border-borderGlow rounded-xl text-xs text-white" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-mono uppercase text-stone-400 mb-1">Artist Name *</label>
+            <input type="text" id="edit-song-artist" value="${escapeAttr(record.artist)}" required class="w-full p-2.5 bg-surface border border-borderGlow rounded-xl text-xs text-white" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-mono uppercase text-stone-400 mb-1">Audio Source / File Path</label>
+            <input type="text" id="edit-song-url" value="${escapeAttr(record.url || '')}" class="w-full p-2.5 bg-surface border border-borderGlow rounded-xl text-xs text-white font-mono" />
+          </div>
+        `;
+      } else if (table === 'views') {
+        document.getElementById('edit-modal-title').textContent = "Modify Favorite View";
+        existingUrlInput.value = record.image_url || '';
+        fileInput.accept = "image/*";
+        mediaSection.classList.remove('hidden');
+
+        currentPreviewImg.src = record.image_url || 'cover.jpg';
+        currentPreviewBox.classList.remove('hidden');
+
+        fields.innerHTML = `
+          <div>
+            <label class="block text-[11px] font-mono uppercase text-stone-400 mb-1">Badge Label</label>
+            <input type="text" id="edit-view-badge" value="${escapeAttr(record.badge || 'My Favorite View')}" class="w-full p-2.5 bg-surface border border-borderGlow rounded-xl text-xs text-white" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-mono uppercase text-stone-400 mb-1">Quote *</label>
+            <textarea id="edit-view-quote" rows="2" required class="w-full p-2.5 bg-surface border border-borderGlow rounded-xl text-xs text-white">${escapeAttr(record.quote || '')}</textarea>
+          </div>
+        `;
+      }
+
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    function closeEditModal() {
+      const modal = document.getElementById('edit-modal');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    async function handleSaveEdit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('edit-save-btn');
+      btn.textContent = "Updating...";
+      btn.disabled = true;
+
+      const tableKey = document.getElementById('edit-table').value;
+      const targetTable = tableKey === 'views' ? 'favorite_views' : tableKey;
+      const id = document.getElementById('edit-id').value;
+      let mediaUrl = document.getElementById('edit-existing-url').value;
+      const file = document.getElementById('edit-file').files[0];
+
+      try {
+        if (file) {
+          const bucket = tableKey === 'songs' ? 'music' : 'photos';
+          const subfolder = tableKey === 'songs' ? 'songs' : (tableKey === 'views' ? 'hero' : tableKey);
+          const path = `${subfolder}/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+
+          const { error: upErr } = await supabaseClient.storage.from(bucket).upload(path, file);
+          if (upErr) throw upErr;
+
+          const { data } = supabaseClient.storage.from(bucket).getPublicUrl(path);
+          mediaUrl = data.publicUrl;
+        }
+
+        let updatePayload = {};
+
+        if (tableKey === 'memories') {
+          updatePayload = {
+            title: document.getElementById('edit-mem-title').value.trim(),
+            date: document.getElementById('edit-mem-date').value,
+            tag: document.getElementById('edit-mem-tag').value.trim() || 'Memory',
+            caption: document.getElementById('edit-mem-caption').value.trim(),
+            image_url: mediaUrl
+          };
+        } else if (tableKey === 'dreams') {
+          updatePayload = {
+            emoji: document.getElementById('edit-dream-emoji').value.trim() || '✨',
+            title: document.getElementById('edit-dream-title').value.trim(),
+            tag: document.getElementById('edit-dream-tag').value.trim() || 'Dream',
+            description: document.getElementById('edit-dream-desc').value.trim(),
+            image_url: mediaUrl
+          };
+        } else if (tableKey === 'songs') {
+          updatePayload = {
+            title: document.getElementById('edit-song-title').value.trim(),
+            artist: document.getElementById('edit-song-artist').value.trim(),
+            url: file ? mediaUrl : document.getElementById('edit-song-url').value.trim()
+          };
+        } else if (tableKey === 'views') {
+          updatePayload = {
+            badge: document.getElementById('edit-view-badge').value.trim() || 'My Favorite View',
+            quote: document.getElementById('edit-view-quote').value.trim(),
+            image_url: mediaUrl
+          };
+        }
+
+        const { error: dbErr } = await supabaseClient
+          .from(targetTable)
+          .update(updatePayload)
+          .eq('id', id);
+
+        if (dbErr) throw dbErr;
+
+        log(`✓ Successfully updated entry in '${targetTable}'`, 'success');
+        closeEditModal();
+        refreshData();
+      } catch (err) {
+        log(`Update failed: ${err.message}`, 'error');
+        alert("Error saving edit: " + err.message);
+      } finally {
+        btn.textContent = "Save Changes";
+        btn.disabled = false;
+      }
+    }
+
+    // --- 6. DELETE SYSTEM ---
     async function deleteRecord(table, id) {
-      if (!confirm(`Delete this row from ${table}?`)) return;
-      const { error } = await supabase.from(table).delete().eq('id', id);
+      if (!confirm(`Are you sure you want to permanently delete this row from ${table}?`)) return;
+
+      const { error } = await supabaseClient.from(table).delete().eq('id', id);
       if (error) {
         log(`Delete error: ${error.message}`, 'error');
+        alert("Failed to delete: " + error.message);
       } else {
-        log(`Row removed from ${table}`, 'success');
+        log(`✓ Row permanently deleted from ${table}`, 'success');
         refreshData();
       }
     }
 
-    // --- 5. DATA REFRESH & DASHBOARD UI ---
+    // --- 7. UI DATA REFRESH ---
     async function refreshData() {
+      if (!supabaseClient) return;
+
       // 1. Memories
-      const { data: mems } = await supabase.from('memories').select('*').order('date', { ascending: false });
-      document.getElementById('stat-memories').textContent = mems ? mems.length : 0;
-      document.getElementById('list-memories').innerHTML = (mems || []).map(m => `
-        <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between text-xs">
+      const { data: mems } = await supabaseClient.from('memories').select('*').order('date', { ascending: false });
+      currentCache.memories = mems || [];
+      document.getElementById('stat-memories').textContent = currentCache.memories.length;
+      document.getElementById('list-memories').innerHTML = currentCache.memories.map(m => `
+        <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between text-xs hover:border-blush-500/40 transition">
           <div class="flex items-center gap-3 truncate">
-            <span class="px-2 py-0.5 rounded bg-surface border border-borderGlow text-[10px] font-mono">${m.date || 'No date'}</span>
-            <span class="font-bold text-white truncate">${m.title}</span>
-            <span class="text-stone-400 truncate hidden sm:inline font-mono">(${m.tag})</span>
+            <span class="px-2 py-0.5 rounded bg-surface border border-borderGlow text-[10px] font-mono text-stone-300">${m.date || 'No date'}</span>
+            <span class="font-bold text-white truncate">${escapeHtml(m.title)}</span>
+            <span class="text-stone-400 truncate hidden sm:inline font-mono">(${escapeHtml(m.tag)})</span>
           </div>
-          <button onclick="deleteRecord('memories', '${m.id}')" class="p-1.5 text-stone-400 hover:text-red-400 transition">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-          </button>
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <button onclick="openEditModal('memories', '${m.id}')" title="Modify Memory" class="p-2 text-stone-400 hover:text-champagne-300 rounded-lg hover:bg-surface transition">
+              <i data-lucide="pencil" class="w-4 h-4"></i>
+            </button>
+            <button onclick="deleteRecord('memories', '${m.id}')" title="Delete Memory" class="p-2 text-stone-400 hover:text-red-400 rounded-lg hover:bg-surface transition">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
         </div>
       `).join('');
 
       // 2. Dreams
-      const { data: dreams } = await supabase.from('dreams').select('*').order('created_at', { ascending: false });
-      document.getElementById('stat-dreams').textContent = dreams ? dreams.length : 0;
-      document.getElementById('list-dreams').innerHTML = (dreams || []).map(d => `
-        <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between text-xs">
+      const { data: dreams } = await supabaseClient.from('dreams').select('*').order('created_at', { ascending: false });
+      currentCache.dreams = dreams || [];
+      document.getElementById('stat-dreams').textContent = currentCache.dreams.length;
+      document.getElementById('list-dreams').innerHTML = currentCache.dreams.map(d => `
+        <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between text-xs hover:border-champagne-400/40 transition">
           <div class="flex items-center gap-3 truncate">
             <span class="text-base">${d.emoji || '✨'}</span>
-            <span class="font-bold text-white truncate">${d.title}</span>
-            <span class="text-stone-400 truncate hidden sm:inline font-mono">(${d.tag})</span>
+            <span class="font-bold text-white truncate">${escapeHtml(d.title)}</span>
+            <span class="text-stone-400 truncate hidden sm:inline font-mono">(${escapeHtml(d.tag)})</span>
           </div>
-          <button onclick="deleteRecord('dreams', '${d.id}')" class="p-1.5 text-stone-400 hover:text-red-400 transition">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-          </button>
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <button onclick="openEditModal('dreams', '${d.id}')" title="Modify Dream" class="p-2 text-stone-400 hover:text-champagne-300 rounded-lg hover:bg-surface transition">
+              <i data-lucide="pencil" class="w-4 h-4"></i>
+            </button>
+            <button onclick="deleteRecord('dreams', '${d.id}')" title="Delete Dream" class="p-2 text-stone-400 hover:text-red-400 rounded-lg hover:bg-surface transition">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
         </div>
       `).join('');
 
       // 3. Songs
-      const { data: songs } = await supabase.from('songs').select('*').order('created_at', { ascending: true });
-      document.getElementById('stat-songs').textContent = songs ? songs.length : 0;
-      document.getElementById('list-songs').innerHTML = (songs || []).map(s => `
-        <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between text-xs">
+      const { data: songs } = await supabaseClient.from('songs').select('*').order('created_at', { ascending: true });
+      currentCache.songs = songs || [];
+      document.getElementById('stat-songs').textContent = currentCache.songs.length;
+      document.getElementById('list-songs').innerHTML = currentCache.songs.map(s => `
+        <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between text-xs hover:border-purple-500/40 transition">
           <div class="flex items-center gap-3 truncate">
             <i data-lucide="music" class="w-4 h-4 text-purple-400 flex-shrink-0"></i>
-            <span class="font-bold text-white truncate">${s.title}</span>
-            <span class="text-stone-400 truncate hidden sm:inline font-mono">— ${s.artist}</span>
+            <span class="font-bold text-white truncate">${escapeHtml(s.title)}</span>
+            <span class="text-stone-400 truncate hidden sm:inline font-mono">— ${escapeHtml(s.artist)}</span>
           </div>
-          <button onclick="deleteRecord('songs', '${s.id}')" class="p-1.5 text-stone-400 hover:text-red-400 transition">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-          </button>
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <button onclick="openEditModal('songs', '${s.id}')" title="Modify Song" class="p-2 text-stone-400 hover:text-champagne-300 rounded-lg hover:bg-surface transition">
+              <i data-lucide="pencil" class="w-4 h-4"></i>
+            </button>
+            <button onclick="deleteRecord('songs', '${s.id}')" title="Delete Song" class="p-2 text-stone-400 hover:text-red-400 rounded-lg hover:bg-surface transition">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      // 4. Favorite Views
+      const { data: views } = await supabaseClient.from('favorite_views').select('*').order('created_at', { ascending: true });
+      currentCache.views = views || [];
+      document.getElementById('stat-views').textContent = currentCache.views.length;
+      document.getElementById('list-views').innerHTML = currentCache.views.map(v => `
+        <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between text-xs hover:border-blush-500/40 transition">
+          <div class="flex items-center gap-3 truncate">
+            <img src="${v.image_url}" class="w-8 h-8 rounded-lg object-cover border border-borderGlow" onerror="this.src='cover.jpg'" />
+            <span class="font-bold text-white truncate">${escapeHtml(v.badge)}</span>
+            <span class="text-stone-400 truncate hidden sm:inline font-mono">"${escapeHtml(v.quote)}"</span>
+          </div>
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <button onclick="openEditModal('views', '${v.id}')" title="Modify View" class="p-2 text-stone-400 hover:text-champagne-300 rounded-lg hover:bg-surface transition">
+              <i data-lucide="pencil" class="w-4 h-4"></i>
+            </button>
+            <button onclick="deleteRecord('favorite_views', '${v.id}')" title="Delete View" class="p-2 text-stone-400 hover:text-red-400 rounded-lg hover:bg-surface transition">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
         </div>
       `).join('');
 
@@ -522,13 +1041,14 @@
     }
 
     function switchTab(tab) {
-      ['memories', 'dreams', 'songs'].forEach(t => {
-        document.getElementById(`panel-${t}`).classList.toggle('hidden', t !== tab);
+      ['memories', 'dreams', 'songs', 'views'].forEach(t => {
+        const panel = document.getElementById(`panel-${t}`);
         const btn = document.getElementById(`tab-btn-${t}`);
-        if (t === tab) {
-          btn.className = "pb-3 border-b-2 border-blush-400 text-white flex items-center gap-2";
-        } else {
-          btn.className = "pb-3 border-b-2 border-transparent text-stone-400 hover:text-white flex items-center gap-2";
+        if (panel) panel.classList.toggle('hidden', t !== tab);
+        if (btn) {
+          btn.className = (t === tab)
+            ? "pb-3 border-b-2 border-blush-400 text-white flex items-center gap-2 flex-shrink-0"
+            : "pb-3 border-b-2 border-transparent text-stone-400 hover:text-white flex items-center gap-2 flex-shrink-0";
         }
       });
     }
@@ -538,7 +1058,17 @@
       refreshData();
     }
 
-    // Auto-login if valid session exists
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function escapeAttr(str) {
+      if (!str) return '';
+      return String(str).replace(/"/g, '&quot;');
+    }
+
+    // Auto-login if session exists
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
       if (sessionStorage.getItem('sanctuary_admin_auth') === 'true') {
