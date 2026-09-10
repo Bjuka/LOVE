@@ -2,7 +2,7 @@
 const SUPABASE_URL = "https://idlhbjoxxskzmvzrhjpb.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_0NiaQQkwoIcttLrvBEzAqg_t5vaBgAY"; 
 
-// Use supabaseClient to prevent collision with window.supabase from the CDN
+// Using supabaseClient to prevent global collision with window.supabase from CDN
 const supabaseClient = window.supabase 
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
@@ -98,23 +98,88 @@ function scrollToSection(id) {
   if (el) el.scrollIntoView({ behavior: 'smooth' });
 }
 
-// --- 2. HERO DISPLAY ---
-const defaultHeroConfig = {
-  image: "cover.jpg",
+// --- 2. HERO / FAVORITE VIEW DISPLAY (DYNAMIC STACKABLE ENGINE) ---
+let favoriteViews = [];
+let currentHeroIndex = 0;
+
+const defaultHeroFallback = {
+  image_url: "cover.jpg",
   badge: "My Favorite View",
   quote: "No matter where life takes us, my heart will always beat for you."
 };
 
-function loadHeroCustom() {
-  const stored = localStorage.getItem('sanctuary_hero_custom');
-  const config = stored ? JSON.parse(stored) : defaultHeroConfig;
+async function loadHeroCustom() {
+  if (supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('favorite_views')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        favoriteViews = data;
+        renderHeroView(0);
+        return;
+      }
+    } catch (err) {
+      console.warn("Favorite views fetch fallback:", err);
+    }
+  }
+
+  // Fallback to single static view if database is empty or offline
+  favoriteViews = [defaultHeroFallback];
+  renderHeroView(0);
+}
+
+function renderHeroView(index) {
+  if (!favoriteViews.length) return;
+  currentHeroIndex = (index + favoriteViews.length) % favoriteViews.length;
+  const view = favoriteViews[currentHeroIndex];
+
   const heroImg = document.getElementById('hero-img');
   const heroBadge = document.getElementById('hero-badge');
   const heroQuote = document.getElementById('hero-quote');
+  const stackControls = document.getElementById('hero-stack-controls');
+  const stackCounter = document.getElementById('hero-stack-counter');
 
-  if (heroImg) heroImg.src = config.image || defaultHeroConfig.image;
-  if (heroBadge) heroBadge.textContent = config.badge || defaultHeroConfig.badge;
-  if (heroQuote) heroQuote.textContent = `"${config.quote || defaultHeroConfig.quote}"`;
+  if (heroImg) {
+    heroImg.style.opacity = '0';
+    setTimeout(() => {
+      heroImg.src = view.image_url || defaultHeroFallback.image_url;
+      heroImg.style.opacity = '1';
+    }, 150);
+  }
+
+  if (heroBadge) heroBadge.textContent = view.badge || defaultHeroFallback.badge;
+  if (heroQuote) {
+    heroQuote.style.opacity = '0';
+    setTimeout(() => {
+      heroQuote.textContent = `"${view.quote || defaultHeroFallback.quote}"`;
+      heroQuote.style.opacity = '1';
+    }, 150);
+  }
+
+  // Only show stackable counter and arrows if there are more than 1 view
+  if (stackControls) {
+    if (favoriteViews.length > 1) {
+      stackControls.classList.remove('hidden');
+      stackControls.classList.add('flex');
+      if (stackCounter) stackCounter.textContent = `${currentHeroIndex + 1} / ${favoriteViews.length}`;
+    } else {
+      stackControls.classList.add('hidden');
+      stackControls.classList.remove('flex');
+    }
+  }
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function nextHeroView() {
+  renderHeroView(currentHeroIndex + 1);
+}
+
+function prevHeroView() {
+  renderHeroView(currentHeroIndex - 1);
 }
 
 // --- 3. DREAMS BOARD (FETCH ONLY) ---
@@ -581,7 +646,10 @@ const wholesomeAffirmations = [
   "Even on your quietest, hardest days, you are deeply and completely loved by me.",
   "Whatever obstacle you are facing today, we will overcome it together. You never stand alone.",
   "Your smile is my absolute favorite thing in this world. Be gentle with your sweet soul today.",
-  "You are safe, you are protected, and you are cherished beyond all words."
+  "You are safe, you are protected, and you are cherished beyond all words.",
+  "Your laughter is my favorite sound in the whole universe.",
+  "I am proud of every single step you take, big or small.",
+  "Whenever you doubt yourself, remember that I believe in you with my whole heart."
 ];
 
 let currentAffirmationIndex = 0;
@@ -619,7 +687,7 @@ function closeHugModal() {
   content.classList.add('scale-95');
 }
 
-// --- 7. PARTICLES ---
+// --- 7. PARTICLES & FLOATING HEARTS ---
 function triggerLoveShower() {
   if (typeof confetti === 'function') {
     confetti({
@@ -644,7 +712,6 @@ if (burstLoveBtn) {
   });
 }
 
-// Canvas floating hearts
 const heartCanvas = document.getElementById('heart-canvas');
 const ctx = heartCanvas ? heartCanvas.getContext('2d') : null;
 let hearts = [];
