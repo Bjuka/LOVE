@@ -232,7 +232,7 @@
             </div>
           </div>
 
-          <!-- DYNAMIC STACKABLE FAVORITE VIEW -->
+          <!-- DYNAMIC HERO VIEW -->
           <div class="lg:col-span-5 flex justify-center">
             <div class="relative w-full max-w-sm">
               <div id="hero-card-container" class="bg-white p-5 rounded-3xl shadow-xl border border-blush-100 transform rotate-1 hover:rotate-0 transition-all duration-500 space-y-4">
@@ -252,17 +252,15 @@
 
                 <div class="space-y-1">
                   <div class="flex items-center justify-between text-xs text-gray-400">
-                    <span id="live-date">Today</span>
-                    <span class="flex items-center gap-1 text-blush-400 font-hand text-base">
-                      <i data-lucide="heart" class="w-3.5 h-3.5 fill-blush-400"></i> My Wifey
-                    </span>
+                    <span id="hero-date">Today</span>
+                    <span id="hero-subtag" class="text-blush-400 font-hand text-base font-medium"></span>
                   </div>
                   <p id="hero-quote" class="font-hand text-2xl text-rosewood leading-tight pt-1 transition-opacity duration-300">
                     "No matter where life takes us, my heart will always beat for you."
                   </p>
                 </div>
 
-                <!-- STACK CONTROLS: Hidden by default; rendered only when views > 1 -->
+                <!-- STACK CONTROLS -->
                 <div id="hero-stack-controls" class="hidden items-center justify-between pt-2 border-t border-gray-100">
                   <button onclick="prevHeroView()" class="p-1.5 rounded-full hover:bg-blush-50 text-gray-400 hover:text-blush-500 transition">
                     <i data-lucide="chevron-left" class="w-4 h-4"></i>
@@ -274,8 +272,9 @@
                 </div>
               </div>
 
-              <div class="absolute -bottom-4 -left-4 bg-champagne-100 border border-champagne-300 px-3.5 py-1.5 rounded-full shadow-lg text-xs font-serif italic text-champagne-400 flex items-center gap-1.5 animate-float-slow">
-                <span>💍 Future Husband & Wife</span>
+              <!-- Floating Pill -->
+              <div id="hero-floating-pill-container" class="absolute -bottom-4 -left-4 bg-champagne-100 border border-champagne-300 px-3.5 py-1.5 rounded-full shadow-lg text-xs font-serif italic text-champagne-400 flex items-center gap-1.5 animate-float-slow">
+                <span id="hero-floating-badge"></span>
               </div>
             </div>
           </div>
