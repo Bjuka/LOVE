@@ -1,7 +1,9 @@
-
+// ==================== SUPABASE CONFIGURATION ====================
 const SUPABASE_URL = "https://idlhbjoxxskzmvzrhjpb.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_0NiaQQkwoIcttLrvBEzAqg_t5vaBgAY"; 
-const supabase = (window.supabase && SUPABASE_ANON_KEY !== "sb_publishable_0NiaQQkwoIcttLrvBEzAqg_t5vaBgAY")
+
+// Use supabaseClient to prevent collision with window.supabase from the CDN
+const supabaseClient = window.supabase 
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
 
@@ -136,9 +138,9 @@ const fallbackDreams = [
 ];
 
 async function loadDreams() {
-  if (supabase) {
+  if (supabaseClient) {
     try {
-      const { data, error } = await supabase.from('dreams').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabaseClient.from('dreams').select('*').order('created_at', { ascending: false });
       if (!error && data && data.length > 0) {
         renderDreams(data.map(d => ({
           title: d.title,
@@ -222,9 +224,9 @@ const fallbackMemories = [
 ];
 
 async function loadMemories() {
-  if (supabase) {
+  if (supabaseClient) {
     try {
-      const { data, error } = await supabase.from('memories').select('*').order('date', { ascending: false });
+      const { data, error } = await supabaseClient.from('memories').select('*').order('date', { ascending: false });
       if (!error && data && data.length > 0) {
         renderMemories(data.map(m => ({
           title: m.title,
@@ -323,9 +325,9 @@ class SanctuaryMusicHub {
   }
 
   async loadQueue() {
-    if (supabase) {
+    if (supabaseClient) {
       try {
-        const { data, error } = await supabase.from('songs').select('*').order('created_at', { ascending: true });
+        const { data, error } = await supabaseClient.from('songs').select('*').order('created_at', { ascending: true });
         if (!error && data && data.length > 0) {
           this.queue = data.map(s => ({ title: s.title, artist: s.artist, src: s.url }));
           this.updateQueueUI();
