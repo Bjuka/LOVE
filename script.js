@@ -1,98 +1,56 @@
-// ==================== SUPABASE CONFIGURATION ====================
+/* ============================================================
+   SANCTUARY — cinematic edition
+   gate · smooth scroll · GSAP ScrollTrigger story · supabase
+   ============================================================ */
+
+// ==================== CONFIG ====================
 var SUPABASE_URL = "https://idlhbjoxxskzmvzrhjpb.supabase.co";
-var SUPABASE_ANON_KEY = "sb_publishable_0NiaQQkwoIcttLrvBEzAqg_t5vaBgAY"; 
-
-window.supabaseClient = window.supabase 
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
-var supabaseClient = window.supabaseClient;
-
-// ==================== SANCTUARY PASSCODE SECURITY ====================
+var SUPABASE_ANON_KEY = "sb_publishable_0NiaQQkwoIcttLrvBEzAqg_t5vaBgAY";
 var SANCTUARY_PASSWORD_HASH = "7ad938a2c26edc6be22bcb1c2b17e1140c40257e2e2ec052db5bcee7f66aba08";
 
-async function sha256(message) {
-  const msgUint8 = new TextEncoder().encode(message.trim());
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+var supabaseClient = window.supabase
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
 
-async function handleUnlockAttempt(e) {
-  if (e) e.preventDefault();
-  const input = document.getElementById('gate-password-input');
-  const errorMsg = document.getElementById('gate-error-msg');
-  const card = document.getElementById('gate-card');
-  const gate = document.getElementById('sanctuary-gate');
-  const skeleton = document.getElementById('skeleton-backdrop');
+var REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+var HAS_GSAP = typeof gsap !== "undefined" && typeof ScrollTrigger !== "undefined";
+if (HAS_GSAP) gsap.registerPlugin(ScrollTrigger);
+if (REDUCED) document.documentElement.classList.add("reduced");
 
-  const inputHash = await sha256(input.value);
-
-  if (inputHash === SANCTUARY_PASSWORD_HASH || input.value.trim() === SANCTUARY_PASSWORD_HASH) {
-    sessionStorage.setItem('sanctuary_unlocked', 'true');
-    errorMsg.classList.add('hidden');
-    document.body.classList.remove('gate-locked');
-    gate.classList.add('opacity-0', 'pointer-events-none');
-    if (skeleton) skeleton.classList.add('opacity-0');
-
-    setTimeout(() => {
-      gate.style.display = 'none';
-      if (skeleton) skeleton.style.display = 'none';
-    }, 700);
-
-    triggerLoveShower();
-  } else {
-    errorMsg.classList.remove('hidden');
-    card.classList.remove('shake-gate');
-    void card.offsetWidth;
-    card.classList.add('shake-gate');
-    input.value = '';
-    input.focus();
-  }
-}
-
+// ==================== HELPERS ====================
 function escapeHtml(str) {
-  if (!str) return '';
+  if (!str) return "";
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function formatDisplayDate(dateStr) {
   if (!dateStr) return "Special Day";
   try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    var d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   } catch (e) {
     return dateStr;
   }
 }
 
-// --- 1. DYNAMIC NICKNAMES CYCLER ---
-const nicknames = ["babe", "baby", "madam", "wifey", "darling", "sweetheart", "sweetcheeks", "cute-heart"];
-let nicknameIndex = 0;
-const nicknameElement = document.getElementById("nickname-badge");
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
 
-setInterval(() => {
-  if (nicknameElement) {
-    nicknameElement.style.opacity = '0';
-    nicknameElement.style.transform = 'translateY(-4px)';
-    setTimeout(() => {
-      nicknameIndex = (nicknameIndex + 1) % nicknames.length;
-      nicknameElement.textContent = nicknames[nicknameIndex];
-      nicknameElement.style.opacity = '1';
-      nicknameElement.style.transform = 'translateY(0px)';
-    }, 250);
-  }
-}, 2800);
+async function sha256(message) {
+  if (!window.crypto || !crypto.subtle) return message.trim();
+  var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(message.trim()));
+  return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+}
 
-// --- 2. HERO / FAVORITE VIEW DISPLAY (DYNAMIC STACK & CUSTOM SUBTAGS) ---
-let favoriteViews = [];
-let currentHeroIndex = 0;
-
-const defaultHeroFallback = {
+// ==================== CONTENT (fallbacks mirror DB) ====================
+var defaultHeroFallback = {
   image_url: "cover.jpg",
   badge: "My Favorite View",
   date: "Today",
@@ -101,567 +59,29 @@ const defaultHeroFallback = {
   quote: "No matter where life takes us, my heart will always beat for you."
 };
 
-async function loadHeroCustom() {
-  if (supabaseClient) {
-    try {
-      const { data, error } = await supabaseClient
-        .from('favorite_views')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if (!error && data && data.length > 0) {
-        favoriteViews = data;
-        renderHeroView(0);
-        return;
-      }
-    } catch (err) {
-      console.warn("Favorite views fetch fallback:", err);
-    }
-  }
-
-  favoriteViews = [defaultHeroFallback];
-  renderHeroView(0);
-}
-
-function renderHeroView(index) {
-  if (!favoriteViews.length) return;
-  currentHeroIndex = (index + favoriteViews.length) % favoriteViews.length;
-  const view = favoriteViews[currentHeroIndex];
-
-  const heroImg = document.getElementById('hero-img');
-  const heroBadge = document.getElementById('hero-badge');
-  const heroDate = document.getElementById('hero-date');
-  const heroSubtag = document.getElementById('hero-subtag');
-  const heroQuote = document.getElementById('hero-quote');
-  const heroFloatingPill = document.getElementById('hero-floating-pill-container');
-  const heroFloatingBadge = document.getElementById('hero-floating-badge');
-  const stackControls = document.getElementById('hero-stack-controls');
-  const stackCounter = document.getElementById('hero-stack-counter');
-
-  if (heroImg) {
-    heroImg.style.opacity = '0';
-    setTimeout(() => {
-      heroImg.src = view.image_url || defaultHeroFallback.image_url;
-      heroImg.style.opacity = '1';
-    }, 150);
-  }
-
-  if (heroBadge) heroBadge.textContent = view.badge || 'My Favorite View';
-  if (heroDate) heroDate.textContent = view.date || 'Today';
-
-  // Custom Emoji Sub-tag (Pure user input, no hardcoded fallbacks)
-  if (heroSubtag) {
-    if (view.sub_tag && view.sub_tag.trim() !== '') {
-      heroSubtag.textContent = view.sub_tag;
-      heroSubtag.classList.remove('hidden');
-    } else {
-      heroSubtag.textContent = '';
-      heroSubtag.classList.add('hidden');
-    }
-  }
-
-  // Floating Badge (Pure user input; hides cleanly if empty)
-  if (heroFloatingPill && heroFloatingBadge) {
-    if (view.floating_badge && view.floating_badge.trim() !== '') {
-      heroFloatingBadge.textContent = view.floating_badge;
-      heroFloatingPill.classList.remove('hidden');
-    } else {
-      heroFloatingBadge.textContent = '';
-      heroFloatingPill.classList.add('hidden');
-    }
-  }
-
-  if (heroQuote) {
-    heroQuote.style.opacity = '0';
-    setTimeout(() => {
-      heroQuote.textContent = `"${view.quote || defaultHeroFallback.quote}"`;
-      heroQuote.style.opacity = '1';
-    }, 150);
-  }
-
-  if (stackControls) {
-    if (favoriteViews.length > 1) {
-      stackControls.classList.remove('hidden');
-      stackControls.classList.add('flex');
-      if (stackCounter) stackCounter.textContent = `${currentHeroIndex + 1} / ${favoriteViews.length}`;
-    } else {
-      stackControls.classList.add('hidden');
-      stackControls.classList.remove('flex');
-    }
-  }
-
-  if (window.lucide) lucide.createIcons();
-}
-
-function nextHeroView() {
-  renderHeroView(currentHeroIndex + 1);
-}
-
-function prevHeroView() {
-  renderHeroView(currentHeroIndex - 1);
-}
-
-function scrollToSection(id) {
-  const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: 'smooth' });
-}
-
-// --- 3. DREAMS BOARD ---
-const fallbackDreams = [
-  {
-    id: 'dream-1',
-    title: 'My Second Love',
-    emoji: '❤️',
-    tag: 'Our little cuteness',
-    desc: 'Our daughter will look like this and we will be the best parents anyone can ever wish for ❤️❤️',
-    image: 'babieee.jpg'
-  },
-  {
-    id: 'dream-2',
-    title: 'Together and Forever',
-    emoji: '🌻🌻',
-    tag: 'Our Goal',
-    desc: 'No matter what happens, we stay together, we fight together and we fix together cuz you\'re my wifey and i love you the most. just like this💕',
-    image: 'dream2.jpg'
-  }
+var fallbackMemories = [
+  { title: "What makes me happy?", date: "2026-03-13", tag: "MINEEE 💍", image: "memory1.jpg",
+    caption: "Every moment with you makes me feel special beacause you feel like a long lost part of me which makes me complete 💕💕" },
+  { title: "My Cute Babieeee", date: "2025-12-12", tag: "Special dayyy 🍷", image: "memory2.jpg",
+    caption: "Whenever im with you, im never alone. you make me feel so happy like im some celebrity but tbh, i just want to be YOURS ❤️" },
+  { title: "Ummmmmah", date: "2026-08-14", tag: "Goofy Moments 🤪", image: "memory3.jpg",
+    caption: "You brings out the kid in me (idk the date😭)" }
 ];
 
-async function loadDreams() {
-  if (supabaseClient) {
-    try {
-      const { data, error } = await supabaseClient.from('dreams').select('*').order('created_at', { ascending: false });
-      if (!error && data && data.length > 0) {
-        renderDreams(data.map(d => ({
-          title: d.title,
-          emoji: d.emoji || '✨',
-          tag: d.tag || 'Dream',
-          desc: d.description || '',
-          image: d.image_url || 'babieee.jpg'
-        })));
-        return;
-      }
-    } catch (err) {
-      console.warn("Supabase dreams fetch fallback:", err);
-    }
-  }
-  renderDreams(fallbackDreams);
-}
-
-function renderDreams(dreams) {
-  const container = document.getElementById('dreams-grid');
-  if (!container) return;
-  container.innerHTML = dreams.map(dream => `
-    <div class="glass-card rounded-3xl p-5 border border-white hover:shadow-lg transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
-      <div>
-        <div class="aspect-video rounded-2xl overflow-hidden mb-4 bg-blush-50 relative shadow-inner">
-          <img src="${escapeHtml(dream.image)}" alt="${escapeHtml(dream.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=700&q=80'">
-          <span class="absolute top-2.5 right-2.5 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold text-rosewood shadow-sm flex items-center gap-1">
-            <span>${escapeHtml(dream.emoji)}</span>
-            <span>${escapeHtml(dream.tag)}</span>
-          </span>
-        </div>
-        <h3 class="font-serif text-lg font-bold text-rosewood">${escapeHtml(dream.title)}</h3>
-        <p class="text-xs sm:text-sm text-gray-600 mt-1 leading-relaxed">${escapeHtml(dream.desc)}</p>
-      </div>
-      <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-        <span class="text-xs text-blush-500 font-medium flex items-center gap-1">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Manifesting together
-        </span>
-        <button onclick="toggleDreamHeart(this)" class="p-2 rounded-full hover:bg-blush-100 text-blush-400 transition">
-          <i data-lucide="heart" class="w-5 h-5 fill-blush-400"></i>
-        </button>
-      </div>
-    </div>
-  `).join('');
-  if (window.lucide) lucide.createIcons();
-}
-
-function toggleDreamHeart(btn) {
-  if (btn.classList.contains('loved')) {
-    btn.classList.remove('loved', 'text-blush-500');
-    btn.classList.add('text-gray-400');
-  } else {
-    btn.classList.add('loved', 'text-blush-500');
-    btn.classList.remove('text-gray-400');
-    triggerLoveShower();
-  }
-}
-
-// --- 4. MEMORIES BOX ---
-const fallbackMemories = [
-  {
-    title: 'What makes me happy?',
-    date: '2026-03-13',
-    tag: 'MINEEE 💍',
-    image: 'memory1.jpg',
-    caption: 'Every moment with you makes me feel special beacause you feel like a long lost part of me which makes me complete 💕💕'
-  },
-  {
-    title: 'My Cute Babieeee',
-    date: '2025-12-12',
-    tag: 'Special dayyy 🍷',
-    image: 'memory2.jpg',
-    caption: 'Whenever im with you, im never alone. you make me feel so happy like im some celebrity but tbh, i just want to be YOURS ❤️'
-  },
-  {
-    title: 'Ummmmmah',
-    date: '2026-08-14',
-    tag: 'Goofy Moments 🤪',
-    image: 'memory3.jpg',
-    caption: 'You brings out the kid in me (idk the date😭)'
-  }
+var fallbackDreams = [
+  { title: "My Second Love", emoji: "❤️", tag: "Our little cuteness",
+    desc: "Our daughter will look like this and we will be the best parents anyone can ever wish for ❤️❤️", image: "babieee.jpg" },
+  { title: "Together and Forever", emoji: "🌻🌻", tag: "Our Goal",
+    desc: "No matter what happens, we stay together, we fight together and we fix together cuz you're my wifey and i love you the most. just like this💕", image: "dream2.jpg" }
 ];
 
-async function loadMemories() {
-  if (supabaseClient) {
-    try {
-      const { data, error } = await supabaseClient.from('memories').select('*').order('date', { ascending: false });
-      if (!error && data && data.length > 0) {
-        renderMemories(data.map(m => ({
-          title: m.title,
-          date: m.date,
-          tag: m.tag || 'Memory',
-          image: m.image_url || 'memory1.jpg',
-          caption: m.caption || m.title
-        })));
-        return;
-      }
-    } catch (err) {
-      console.warn("Supabase memories fetch fallback:", err);
-    }
-  }
-  renderMemories(fallbackMemories);
-}
-
-function renderMemories(memories) {
-  const container = document.getElementById('memory-gallery-grid');
-  if (!container) return;
-  container.innerHTML = memories.map(mem => `
-    <div class="glass-card rounded-3xl p-4 sm:p-5 border border-white hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
-      <div>
-        <div class="aspect-[4/3] rounded-2xl overflow-hidden bg-blush-50 relative mb-3.5 shadow-inner">
-          <img src="${escapeHtml(mem.image)}" alt="${escapeHtml(mem.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=700&q=80'">
-          <span class="absolute top-2.5 left-2.5 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-semibold text-rosewood shadow-sm">
-            ${escapeHtml(mem.tag)}
-          </span>
-        </div>
-        <div class="space-y-1">
-          <span class="text-[11px] text-blush-500 font-semibold tracking-wider uppercase">${formatDisplayDate(mem.date)}</span>
-          <h4 class="font-serif text-lg font-bold text-rosewood leading-snug">${escapeHtml(mem.title)}</h4>
-          <p class="text-xs sm:text-sm text-gray-600 font-hand text-lg leading-relaxed pt-1">"${escapeHtml(mem.caption)}"</p>
-        </div>
-      </div>
-      <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-        <span class="text-[11px] text-gray-400">Cherished forever</span>
-        <button onclick="toggleDreamHeart(this)" class="p-1.5 rounded-full hover:bg-blush-50 text-blush-400 transition">
-          <i data-lucide="heart" class="w-4 h-4 fill-blush-400"></i>
-        </button>
-      </div>
-    </div>
-  `).join('');
-  if (window.lucide) lucide.createIcons();
-}
-
-// --- 5. MUSIC HUB ---
-const fallbackSongs = [
-  { title: 'Accidently in LOVE', artist: 'Counting Crows', src: 'Accidently in Love.mp3' },
-  { title: 'Make you MINE', artist: 'PUBLIC', src: 'Make you MINE.mp3' },
-  { title: 'You & I', artist: 'One Direection', src: 'You & I.mp3' }
+var fallbackSongs = [
+  { title: "Accidently in LOVE", artist: "Counting Crows", src: "Accidently in Love.mp3" },
+  { title: "Make you MINE", artist: "PUBLIC", src: "Make you MINE.mp3" },
+  { title: "You & I", artist: "One Direection", src: "You & I.mp3" }
 ];
 
-class SanctuaryMusicHub {
-  constructor() {
-    this.mode = 'queue';
-    this.isPlaying = false;
-    this.synthCtx = null;
-    this.synthInterval = null;
-    this.notes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 659.25];
-    this.currentTrackIndex = 0;
-    this.volume = 0.7;
-
-    this.audioEl = new Audio();
-    this.audioEl.volume = this.volume;
-    this.audioEl.preload = "auto";
-    this.queue = [];
-
-    this.setupAudioListeners();
-    this.loadQueue();
-  }
-
-  setupAudioListeners() {
-    this.audioEl.addEventListener('timeupdate', () => {
-      if (this.mode === 'queue' && this.audioEl.duration) {
-        const current = this.audioEl.currentTime;
-        const duration = this.audioEl.duration;
-        const progressEl = document.getElementById('song-progress');
-        if (progressEl) progressEl.value = (current / duration) * 100;
-        const curEl = document.getElementById('current-time');
-        const durEl = document.getElementById('duration-time');
-        if (curEl) curEl.textContent = this.formatTime(current);
-        if (durEl) durEl.textContent = this.formatTime(duration);
-      }
-    });
-
-    this.audioEl.addEventListener('ended', () => {
-      if (this.mode === 'queue') this.playNext();
-    });
-
-    this.audioEl.addEventListener('error', () => {
-      if (this.mode === 'queue' && this.isPlaying) {
-        this.pause();
-      }
-    });
-  }
-
-  async loadQueue() {
-    if (supabaseClient) {
-      try {
-        const { data, error } = await supabaseClient.from('songs').select('*').order('created_at', { ascending: true });
-        if (!error && data && data.length > 0) {
-          this.queue = data.map(s => ({ title: s.title, artist: s.artist, src: s.url }));
-          this.updateQueueUI();
-          return;
-        }
-      } catch (err) {
-        console.warn("Supabase queue fetch fallback:", err);
-      }
-    }
-    this.queue = [...fallbackSongs];
-    this.updateQueueUI();
-  }
-
-  formatTime(sec) {
-    if (!sec || isNaN(sec)) return "0:00";
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60);
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  }
-
-  initSynth() {
-    if (!this.synthCtx) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      this.synthCtx = new AudioContext();
-    }
-  }
-
-  playSynthChime(freq) {
-    if (!this.synthCtx) return;
-    const osc = this.synthCtx.createOscillator();
-    const gain = this.synthCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, this.synthCtx.currentTime);
-    gain.gain.setValueAtTime(0.001, this.synthCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(this.volume * 0.16, this.synthCtx.currentTime + 0.08);
-    gain.gain.exponentialRampToValueAtTime(0.0001, this.synthCtx.currentTime + 2.8);
-    osc.connect(gain);
-    gain.connect(this.synthCtx.destination);
-    osc.start();
-    osc.stop(this.synthCtx.currentTime + 3.0);
-  }
-
-  startSynth() {
-    this.initSynth();
-    if (this.synthCtx.state === 'suspended') this.synthCtx.resume();
-    this.playSynthChime(this.notes[Math.floor(Math.random() * this.notes.length)]);
-    this.synthInterval = setInterval(() => {
-      if (Math.random() > 0.18) {
-        this.playSynthChime(this.notes[Math.floor(Math.random() * this.notes.length)]);
-      }
-    }, 1150);
-  }
-
-  stopSynth() {
-    if (this.synthInterval) {
-      clearInterval(this.synthInterval);
-      this.synthInterval = null;
-    }
-  }
-
-  togglePlay() {
-    this.isPlaying ? this.pause() : this.play();
-  }
-
-  play() {
-    if (this.mode === 'synth') {
-      this.isPlaying = true;
-      this.startSynth();
-    } else {
-      if (this.queue.length === 0) return;
-      this.loadAndPlayTrack(this.currentTrackIndex);
-    }
-    this.updatePlayerUI();
-  }
-
-  pause() {
-    this.isPlaying = false;
-    this.mode === 'synth' ? this.stopSynth() : this.audioEl.pause();
-    this.updatePlayerUI();
-  }
-
-  loadAndPlayTrack(index) {
-    if (!this.queue[index]) return;
-    this.currentTrackIndex = index;
-    this.audioEl.src = this.queue[index].src;
-    this.audioEl.load();
-    this.audioEl.play().then(() => {
-      this.isPlaying = true;
-      this.updatePlayerUI();
-    }).catch(() => {
-      this.isPlaying = false;
-      this.updatePlayerUI();
-    });
-  }
-
-  playNext() {
-    if (this.mode === 'synth' || this.queue.length === 0) return;
-    this.currentTrackIndex = (this.currentTrackIndex + 1) % this.queue.length;
-    this.isPlaying ? this.loadAndPlayTrack(this.currentTrackIndex) : this.updatePlayerUI();
-  }
-
-  playPrev() {
-    if (this.mode === 'synth' || this.queue.length === 0) return;
-    this.currentTrackIndex = (this.currentTrackIndex - 1 + this.queue.length) % this.queue.length;
-    this.isPlaying ? this.loadAndPlayTrack(this.currentTrackIndex) : this.updatePlayerUI();
-  }
-
-  setMode(newMode) {
-    if (this.mode === newMode) return;
-    this.pause();
-    this.mode = newMode;
-    this.updatePlayerUI();
-  }
-
-  setVolume(val) {
-    this.volume = parseFloat(val);
-    this.audioEl.volume = this.volume;
-  }
-
-  seek(percent) {
-    if (this.mode === 'queue' && this.audioEl.duration) {
-      this.audioEl.currentTime = (percent / 100) * this.audioEl.duration;
-    }
-  }
-
-  updatePlayerUI() {
-    const titleEl = document.getElementById('player-title');
-    const subEl = document.getElementById('player-subtitle');
-    const navTitle = document.getElementById('nav-music-title');
-    const mainPlayIcon = document.getElementById('main-play-icon');
-    const vinyl = document.getElementById('vinyl-disc');
-    const eq = document.getElementById('nav-audio-equalizer');
-    const seekSec = document.getElementById('queue-seek-section');
-    const prevBtn = document.getElementById('prev-btn');
-    const nextBtn = document.getElementById('next-btn');
-
-    if (this.mode === 'synth') {
-      if (titleEl) titleEl.textContent = "Dreamy Lofi Chimes";
-      if (subEl) subEl.textContent = "Procedural Ambient Synthesizer ✨";
-      if (navTitle) navTitle.textContent = "Lofi Chimes";
-      if (seekSec) seekSec.classList.add('hidden');
-      if (prevBtn) prevBtn.disabled = true;
-      if (nextBtn) nextBtn.disabled = true;
-    } else {
-      if (seekSec) seekSec.classList.remove('hidden');
-      if (prevBtn) prevBtn.disabled = false;
-      if (nextBtn) nextBtn.disabled = false;
-      if (this.queue[this.currentTrackIndex]) {
-        const s = this.queue[this.currentTrackIndex];
-        if (titleEl) titleEl.textContent = s.title;
-        if (subEl) subEl.textContent = s.artist;
-        if (navTitle) navTitle.textContent = s.title;
-      }
-    }
-
-    if (this.isPlaying) {
-      if (mainPlayIcon) mainPlayIcon.setAttribute('data-lucide', 'pause');
-      if (vinyl) vinyl.classList.add('animate-spin-slow');
-      if (eq) { eq.classList.remove('hidden'); eq.classList.add('flex'); }
-    } else {
-      if (mainPlayIcon) mainPlayIcon.setAttribute('data-lucide', 'play');
-      if (vinyl) vinyl.classList.remove('animate-spin-slow');
-      if (eq) { eq.classList.add('hidden'); eq.classList.remove('flex'); }
-    }
-    if (window.lucide) lucide.createIcons();
-    this.updateQueueUI();
-  }
-
-  updateQueueUI() {
-    const list = document.getElementById('queue-list');
-    const countBadge = document.getElementById('queue-count-badge');
-    if (countBadge) countBadge.textContent = this.queue.length;
-    if (!list) return;
-
-    list.innerHTML = this.queue.map((song, i) => `
-      <div class="flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition ${
-        (this.mode === 'queue' && i === this.currentTrackIndex)
-          ? 'bg-blush-100/70 border-blush-300 font-semibold text-rosewood'
-          : 'bg-white hover:bg-cream-50 border-gray-100 text-gray-700'
-      }" onclick="musicHub.selectTrack(${i})">
-        <div class="flex items-center gap-2.5 truncate">
-          <span class="w-5 text-center text-[10px] text-gray-400 font-mono">${(this.mode === 'queue' && i === this.currentTrackIndex && this.isPlaying) ? '▶' : i + 1}</span>
-          <div class="truncate">
-            <span class="block truncate">${escapeHtml(song.title)}</span>
-            <span class="text-[10px] text-gray-500 block truncate">${escapeHtml(song.artist)}</span>
-          </div>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  selectTrack(index) {
-    this.mode = 'queue';
-    this.switchTabUI('queue');
-    this.loadAndPlayTrack(index);
-  }
-
-  switchTabUI(mode) {
-    const synthTab = document.getElementById('mode-synth-tab');
-    const queueTab = document.getElementById('mode-queue-tab');
-    const queueView = document.getElementById('queue-view-container');
-
-    if (mode === 'synth') {
-      if (synthTab) synthTab.className = "flex-1 py-2 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 bg-white text-blush-600 shadow-sm";
-      if (queueTab) queueTab.className = "flex-1 py-2 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 text-gray-600 hover:text-rosewood";
-      if (queueView) queueView.classList.add('hidden');
-    } else {
-      if (queueTab) queueTab.className = "flex-1 py-2 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 bg-white text-blush-600 shadow-sm";
-      if (synthTab) synthTab.className = "flex-1 py-2 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 text-gray-600 hover:text-rosewood";
-      if (queueView) queueView.classList.remove('hidden');
-    }
-  }
-}
-
-const musicHub = new SanctuaryMusicHub();
-
-function openMusicModal() {
-  const modal = document.getElementById('music-modal');
-  const content = document.getElementById('music-modal-content');
-  modal.classList.remove('opacity-0', 'pointer-events-none');
-  content.classList.remove('scale-95');
-  content.classList.add('scale-100');
-}
-
-function closeMusicModal() {
-  const modal = document.getElementById('music-modal');
-  const content = document.getElementById('music-modal-content');
-  modal.classList.add('opacity-0', 'pointer-events-none');
-  content.classList.remove('scale-100');
-  content.classList.add('scale-95');
-}
-
-function switchAudioMode(mode) {
-  musicHub.setMode(mode);
-  musicHub.switchTabUI(mode);
-}
-
-function toggleMainPlayState() { musicHub.togglePlay(); }
-function playNextTrack() { musicHub.playNext(); }
-function playPrevTrack() { musicHub.playPrev(); }
-function handleSeek(val) { musicHub.seek(val); }
-function handleVolumeChange(val) { musicHub.setVolume(val); }
-
-// --- 6. AFFIRMATIONS & HUGS ---
-const wholesomeAffirmations = [
+var wholesomeAffirmations = [
   "You are the most precious part of my life, and nothing can diminish how brilliant and strong you are.",
   "Take a deep breath. You don't have to carry the whole world today. Just rest, my love.",
   "You are doing so much better than you give yourself credit for, and I am endlessly proud of you.",
@@ -676,139 +96,659 @@ const wholesomeAffirmations = [
   "Whenever you doubt yourself, remember that I believe in you with my whole heart."
 ];
 
-let currentAffirmationIndex = 0;
+// ============================================================
+// 1 · LOGIN GATE
+// ============================================================
+var gateEl, gateForm, gateInput, gateError;
 
-function drawNewAffirmation() {
-  const textEl = document.getElementById('affirmation-text');
-  const badgeEl = document.getElementById('quote-number-badge');
-  const icon = document.getElementById('draw-icon');
-  if (icon) icon.classList.add('animate-spin');
-
-  textEl.style.opacity = '0';
-  setTimeout(() => {
-    currentAffirmationIndex = (currentAffirmationIndex + 1) % wholesomeAffirmations.length;
-    textEl.textContent = `"${wholesomeAffirmations[currentAffirmationIndex]}"`;
-    badgeEl.textContent = `#${currentAffirmationIndex + 1}`;
-    textEl.style.opacity = '1';
-    if (icon) icon.classList.remove('animate-spin');
-  }, 250);
+function unlockSite() {
+  sessionStorage.setItem("sanctuary_unlocked", "true");
+  document.body.classList.remove("locked");
+  spawnHeartBurst(window.innerWidth / 2, window.innerHeight * 0.6, 26);
+  startExperience();
 }
 
-function openHugModal() {
-  const modal = document.getElementById('hug-modal');
-  const content = document.getElementById('hug-modal-content');
-  modal.classList.remove('opacity-0', 'pointer-events-none');
-  content.classList.remove('scale-95');
-  content.classList.add('scale-100');
-  triggerLoveShower();
-}
-
-function closeHugModal() {
-  const modal = document.getElementById('hug-modal');
-  const content = document.getElementById('hug-modal-content');
-  modal.classList.add('opacity-0', 'pointer-events-none');
-  content.classList.remove('scale-100');
-  content.classList.add('scale-95');
-}
-
-// --- 7. PARTICLES & FLOATING HEARTS ---
-function triggerLoveShower() {
-  if (typeof confetti === 'function') {
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#E78895', '#FDE2E4', '#DFB78C', '#FF85A1', '#FFC2D1']
-    });
+async function handleGateSubmit(e) {
+  e.preventDefault();
+  var val = gateInput.value;
+  var hash = await sha256(val);
+  if (hash === SANCTUARY_PASSWORD_HASH || val.trim() === SANCTUARY_PASSWORD_HASH) {
+    gateError.classList.remove("show");
+    if (HAS_GSAP && !REDUCED) {
+      var tl = gsap.timeline({ onComplete: function () {
+        gateEl.style.display = "none";
+        unlockSite();
+      }});
+      tl.to(gateEl.querySelector(".gate-inner"), { y: -26, opacity: 0, duration: 0.7, ease: "power3.in" })
+        .to(gateEl.querySelectorAll(".gate-corner"), { opacity: 0, duration: 0.4 }, "<")
+        .to(gateEl, { opacity: 0, duration: 0.7, ease: "power2.inOut" });
+    } else {
+      gateEl.classList.add("open");
+      setTimeout(function () { gateEl.style.display = "none"; unlockSite(); }, 900);
+    }
+  } else {
+    gateError.classList.add("show");
+    gateError.classList.remove("shake");
+    void gateError.offsetWidth;
+    gateError.classList.add("shake");
+    gateInput.value = "";
+    gateInput.focus();
   }
 }
 
-const burstLoveBtn = document.getElementById('burst-love-btn');
-if (burstLoveBtn) {
-  burstLoveBtn.addEventListener('click', (e) => {
-    const rect = e.target.getBoundingClientRect();
-    confetti({
-      particleCount: 60,
-      spread: 60,
-      origin: { x: (rect.left + rect.width / 2) / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight },
-      colors: ['#E78895', '#FDE2E4', '#DFB78C', '#FAC8CD']
+function initGate() {
+  gateEl = document.getElementById("gate");
+  gateForm = document.getElementById("gate-form");
+  gateInput = document.getElementById("gate-input");
+  gateError = document.getElementById("gate-error");
+  gateForm.addEventListener("submit", handleGateSubmit);
+  gateInput.focus();
+
+  if (sessionStorage.getItem("sanctuary_unlocked") === "true") {
+    gateEl.style.display = "none";
+    document.body.classList.remove("locked");
+    startExperience();
+  }
+}
+
+// ============================================================
+// 2 · SMOOTH SCROLL (Lenis)
+// ============================================================
+var lenis = null;
+
+function initSmoothScroll() {
+  if (typeof Lenis === "undefined" || REDUCED) return;
+  lenis = new Lenis({ duration: 1.15, smoothWheel: true, touchMultiplier: 1.4 });
+  lenis.on("scroll", ScrollTrigger.update);
+  function raf(time) {
+    lenis.raf(time);
+    requestAnimationFrame(raf);
+  }
+  requestAnimationFrame(raf);
+}
+
+// ============================================================
+// 3 · DATA (Supabase with graceful fallbacks)
+// ============================================================
+var favoriteViews = [];
+var currentViewIndex = 0;
+var viewAutoTimer = null;
+
+async function loadFavoriteViews() {
+  if (supabaseClient) {
+    try {
+      var res = await supabaseClient.from("favorite_views").select("*").order("created_at", { ascending: true });
+      if (!res.error && res.data && res.data.length > 0) favoriteViews = res.data;
+    } catch (err) { console.warn("favorite_views fallback:", err); }
+  }
+  if (!favoriteViews.length) favoriteViews = [defaultHeroFallback];
+  renderHeroStack();
+}
+
+function renderHeroStack() {
+  var stack = document.getElementById("hero-stack");
+  if (!stack) return;
+  stack.innerHTML = favoriteViews.map(function (v, i) {
+    return '<div class="hero-layer' + (i === 0 ? " is-active" : "") + '">' +
+      '<img src="' + escapeHtml(v.image_url || defaultHeroFallback.image_url) + '" alt="" /></div>';
+  }).join("");
+
+  var quoteEl = document.querySelector(".hero-quote");
+  if (quoteEl) {
+    var v = favoriteViews[0];
+    var meta = [v.badge || "My Favorite View", v.date || "Today"];
+    if (v.sub_tag && v.sub_tag.trim()) meta.push(v.sub_tag.trim());
+    if (v.floating_badge && v.floating_badge.trim()) meta.push(v.floating_badge.trim());
+    quoteEl.innerHTML =
+      '<span class="hero-quote-meta">' + meta.map(escapeHtml).join(" · ") + "</span>" +
+      '<span class="hero-quote-text">“' + escapeHtml(v.quote || defaultHeroFallback.quote) + "”</span>";
+    // without a scrub timeline the quote must be visible statically
+    if (!HAS_GSAP || REDUCED) quoteEl.style.opacity = "1";
+  }
+
+  if (favoriteViews.length > 1) {
+    buildStackMeta();
+    startAutoAdvance();
+  }
+  refreshTriggers();
+}
+
+function buildStackMeta() {
+  if (document.getElementById("hero-count")) return;
+  var meta = document.createElement("div");
+  meta.className = "hero-stack-meta";
+  meta.innerHTML =
+    '<button id="hero-prev" aria-label="Previous view">←</button>' +
+    '<span id="hero-count">01 / ' + pad2(favoriteViews.length) + "</span>" +
+    '<button id="hero-next" aria-label="Next view">→</button>';
+  document.getElementById("hero").appendChild(meta);
+  document.getElementById("hero-prev").addEventListener("click", function () { switchView(currentViewIndex - 1); });
+  document.getElementById("hero-next").addEventListener("click", function () { switchView(currentViewIndex + 1); });
+}
+
+function switchView(idx) {
+  currentViewIndex = ((idx % favoriteViews.length) + favoriteViews.length) % favoriteViews.length;
+  var layers = document.querySelectorAll(".hero-layer");
+  layers.forEach(function (l, i) { l.classList.toggle("is-active", i === currentViewIndex); });
+
+  var v = favoriteViews[currentViewIndex];
+  var quoteEl = document.querySelector(".hero-quote");
+  if (quoteEl) {
+    var meta = [v.badge || "My Favorite View", v.date || "Today"];
+    if (v.sub_tag && v.sub_tag.trim()) meta.push(v.sub_tag.trim());
+    if (v.floating_badge && v.floating_badge.trim()) meta.push(v.floating_badge.trim());
+    quoteEl.innerHTML =
+      '<span class="hero-quote-meta">' + meta.map(escapeHtml).join(" · ") + "</span>" +
+      '<span class="hero-quote-text">“' + escapeHtml(v.quote || defaultHeroFallback.quote) + "”</span>";
+  }
+
+  var count = document.getElementById("hero-count");
+  if (count) count.textContent = pad2(currentViewIndex + 1) + " / " + pad2(favoriteViews.length);
+
+  if (HAS_GSAP && !REDUCED) {
+    gsap.fromTo(quoteEl, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: "power2.out" });
+    gsap.fromTo(layers[currentViewIndex], { opacity: 0 }, { opacity: 1, duration: 0.9, ease: "power2.out" });
+  } else if (quoteEl) {
+    quoteEl.style.opacity = "1";
+  }
+}
+
+function startAutoAdvance() {
+  if (viewAutoTimer || REDUCED) return;
+  viewAutoTimer = setInterval(function () { switchView(currentViewIndex + 1); }, 8000);
+}
+
+// ---------- memories ----------
+async function loadMemories() {
+  var memories = fallbackMemories;
+  if (supabaseClient) {
+    try {
+      var res = await supabaseClient.from("memories").select("*").order("date", { ascending: false });
+      if (!res.error && res.data && res.data.length > 0) {
+        memories = res.data.map(function (m) {
+          return { title: m.title, date: m.date, tag: m.tag || "Memory",
+                   image: m.image_url || "memory1.jpg", caption: m.caption || m.title };
+        });
+      }
+    } catch (err) { console.warn("memories fallback:", err); }
+  }
+  renderMemories(memories);
+}
+
+function renderMemories(memories) {
+  var track = document.getElementById("mem-track");
+  if (!track) return;
+  var tilts = [-2.2, 1.8, -1.4, 2.4, -1.8, 1.2];
+  var html = memories.map(function (m, i) {
+    var tilt = tilts[i % tilts.length];
+    return '<div class="mem-panel">' +
+      '<div class="mem-card">' +
+        '<div class="mem-frame" style="--tilt:' + tilt + 'deg">' +
+          '<img src="' + escapeHtml(m.image) + '" alt="' + escapeHtml(m.title) + '" loading="lazy" />' +
+          '<span class="mem-tag">' + escapeHtml(m.tag || "Memory") + "</span>" +
+        "</div>" +
+        '<div class="mem-meta">' +
+          '<p class="mem-date">' + escapeHtml(formatDisplayDate(m.date)) + "</p>" +
+          '<h3 class="mem-title">' + escapeHtml(m.title) + "</h3>" +
+          '<p class="mem-caption">“' + escapeHtml(m.caption) + "”</p>" +
+        "</div>" +
+      "</div></div>";
+  });
+  track.insertAdjacentHTML("beforeend", html.join(""));
+  refreshTriggers();
+}
+
+// ---------- dreams ----------
+async function loadDreams() {
+  var dreams = fallbackDreams;
+  if (supabaseClient) {
+    try {
+      var res = await supabaseClient.from("dreams").select("*").order("created_at", { ascending: false });
+      if (!res.error && res.data && res.data.length > 0) {
+        dreams = res.data.map(function (d) {
+          return { title: d.title, emoji: d.emoji || "✨", tag: d.tag || "Dream",
+                   desc: d.description || "", image: d.image_url || "babieee.jpg" };
+        });
+      }
+    } catch (err) { console.warn("dreams fallback:", err); }
+  }
+  renderDreams(dreams);
+}
+
+function renderDreams(dreams) {
+  var list = document.getElementById("dream-list");
+  if (!list) return;
+  list.innerHTML = dreams.map(function (d, i) {
+    return '<div class="dream-row" data-dream="' + i + '">' +
+      '<div class="dream-media"><span class="dream-emoji">' + escapeHtml(d.emoji) + "</span>" +
+        '<img src="' + escapeHtml(d.image) + '" alt="' + escapeHtml(d.title) + '" loading="lazy" /></div>' +
+      '<div class="dream-text">' +
+        '<p class="dream-tag">' + escapeHtml(d.tag) + "</p>" +
+        '<h3 class="dream-title">' + escapeHtml(d.title) + "</h3>" +
+        '<p class="dream-desc">' + escapeHtml(d.desc) + "</p>" +
+        '<p class="dream-manifest">manifesting together</p>' +
+      "</div></div>";
+  }).join("");
+  refreshTriggers();
+}
+
+// ---------- songs ----------
+var player = null;
+
+function initPlayer() {
+  var audio = new Audio();
+  audio.preload = "auto";
+  audio.volume = 0.7;
+  player = { audio: audio, queue: [], index: 0, playing: false };
+
+  var btnPlay = document.getElementById("btn-play");
+  btnPlay.addEventListener("click", function () { player.playing ? pauseTrack() : playCurrent(); });
+  document.getElementById("btn-next").addEventListener("click", nextTrack);
+  document.getElementById("btn-prev").addEventListener("click", prevTrack);
+  document.getElementById("seek").addEventListener("input", function (e) {
+    if (audio.duration) audio.currentTime = (e.target.value / 100) * audio.duration;
+  });
+
+  audio.addEventListener("timeupdate", updateSeekUI);
+  audio.addEventListener("ended", nextTrack);
+  audio.addEventListener("error", function () {
+    if (player.playing) { player.playing = false; syncPlayUI(); }
+  });
+
+  loadSongs();
+}
+
+async function loadSongs() {
+  var songs = fallbackSongs;
+  if (supabaseClient) {
+    try {
+      var res = await supabaseClient.from("songs").select("*").order("created_at", { ascending: true });
+      if (!res.error && res.data && res.data.length > 0) {
+        songs = res.data.map(function (s) { return { title: s.title, artist: s.artist, src: s.url }; });
+      }
+    } catch (err) { console.warn("songs fallback:", err); }
+  }
+  player.queue = songs;
+  renderPlaylist();
+  updateNowPlaying();
+}
+
+function renderPlaylist() {
+  var ol = document.getElementById("playlist");
+  ol.innerHTML = player.queue.map(function (s, i) {
+    return '<li data-i="' + i + '">' +
+      '<span class="num">' + pad2(i + 1) + "</span>" +
+      "<div><p class=\"pt-title\">" + escapeHtml(s.title) + '</p><p class="pt-artist">' + escapeHtml(s.artist) + "</p></div></li>";
+  }).join("");
+  ol.querySelectorAll("li").forEach(function (li) {
+    li.addEventListener("click", function () {
+      player.index = parseInt(li.dataset.i, 10);
+      playTrack(player.index);
     });
   });
 }
 
-const heartCanvas = document.getElementById('heart-canvas');
-const ctx = heartCanvas ? heartCanvas.getContext('2d') : null;
-let hearts = [];
+function playCurrent() {
+  if (!player.queue.length) return;
+  playTrack(player.index);
+}
 
-function resizeCanvas() {
-  if (heartCanvas) {
-    heartCanvas.width = window.innerWidth;
-    heartCanvas.height = window.innerHeight;
+function playTrack(i) {
+  if (!player.queue[i]) return;
+  player.index = i;
+  var s = player.queue[i];
+  player.audio.src = s.src;
+  player.audio.play().then(function () {
+    player.playing = true;
+    syncPlayUI();
+  }).catch(function () {
+    player.playing = false;
+    syncPlayUI();
+  });
+  updateNowPlaying();
+  renderPlaylistState();
+}
+
+function pauseTrack() {
+  player.audio.pause();
+  player.playing = false;
+  syncPlayUI();
+  renderPlaylistState();
+}
+
+function nextTrack() {
+  if (!player.queue.length) return;
+  playTrack((player.index + 1) % player.queue.length);
+}
+
+function prevTrack() {
+  if (!player.queue.length) return;
+  playTrack((player.index - 1 + player.queue.length) % player.queue.length);
+}
+
+function updateNowPlaying() {
+  var s = player.queue[player.index];
+  if (!s) return;
+  document.getElementById("track-title").textContent = s.title;
+  document.getElementById("track-artist").textContent = s.artist;
+  renderPlaylistState();
+}
+
+function renderPlaylistState() {
+  document.querySelectorAll("#playlist li").forEach(function (li, i) {
+    li.classList.toggle("active", i === player.index);
+  });
+  var num = document.querySelector("#playlist li.active .num");
+  if (num) num.textContent = player.playing ? "▶" : pad2(player.index + 1);
+}
+
+function syncPlayUI() {
+  document.getElementById("icon-play").classList.toggle("hidden", player.playing);
+  document.getElementById("icon-pause").classList.toggle("hidden", !player.playing);
+  document.getElementById("disc").classList.toggle("playing", player.playing);
+  renderPlaylistState();
+}
+
+function fmtTime(sec) {
+  if (!sec || isNaN(sec)) return "0:00";
+  var m = Math.floor(sec / 60);
+  var s = Math.floor(sec % 60);
+  return m + ":" + pad2(s);
+}
+
+function updateSeekUI() {
+  var a = player.audio;
+  if (!a.duration) return;
+  document.getElementById("seek").value = (a.currentTime / a.duration) * 100;
+  document.getElementById("t-cur").textContent = fmtTime(a.currentTime);
+  document.getElementById("t-dur").textContent = fmtTime(a.duration);
+}
+
+// ============================================================
+// 4 · NOTES DECK (affirmations)
+// ============================================================
+var noteIndex = 0;
+var noteAnimating = false;
+
+function showNote(i, animate) {
+  var card = document.getElementById("note-card");
+  var textEl = document.getElementById("note-text");
+  noteIndex = ((i % wholesomeAffirmations.length) + wholesomeAffirmations.length) % wholesomeAffirmations.length;
+
+  function apply() {
+    textEl.textContent = "“" + wholesomeAffirmations[noteIndex] + "”";
+    document.getElementById("note-count").textContent =
+      pad2(noteIndex + 1) + " / " + pad2(wholesomeAffirmations.length);
+  }
+
+  if (HAS_GSAP && animate && !REDUCED && !noteAnimating) {
+    noteAnimating = true;
+    gsap.timeline({ onComplete: function () { noteAnimating = false; } })
+      .to(card, { rotateX: 6, y: -14, opacity: 0, duration: 0.28, ease: "power2.in" })
+      .add(apply)
+      .fromTo(card, { rotateX: -6, y: 18, opacity: 0 },
+        { rotateX: 0, y: 0, opacity: 1, duration: 0.5, ease: "power3.out" });
+  } else {
+    apply();
   }
 }
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
 
-function spawnFloatingHeart(x, y) {
-  if (!heartCanvas) return;
-  const colors = ['#E78895', '#F49FAB', '#D96576', '#DFB78C'];
-  for (let i = 0; i < 5; i++) {
+function initNotes() {
+  showNote(0, false);
+
+  document.getElementById("hug-open").addEventListener("click", function () {
+    document.getElementById("hug-overlay").classList.add("open");
+    spawnHeartBurst(window.innerWidth / 2, window.innerHeight * 0.5, 18);
+  });
+  document.getElementById("hug-close").addEventListener("click", closeHug);
+  document.getElementById("hug-warm").addEventListener("click", function () {
+    closeHug();
+    spawnHeartBurst(window.innerWidth / 2, window.innerHeight / 2, 30);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeHug();
+  });
+}
+
+function closeHug() {
+  document.getElementById("hug-overlay").classList.remove("open");
+}
+
+// ============================================================
+// 5 · SCROLL STORY (GSAP ScrollTrigger)
+// ============================================================
+function buildScrollStory() {
+  if (!HAS_GSAP || REDUCED) return;
+
+  // ----- hero: pin + cinematic zoom into the cover -----
+  var heroTl = gsap.timeline({
+    scrollTrigger: {
+      trigger: "#hero", start: "top top", end: "+=120%",
+      pin: true, scrub: 1, anticipatePin: 1
+    }
+  });
+  heroTl.to("#hero-zoom", { scale: 1.35, ease: "power1.inOut" }, 0)
+    .to("#hero-copy", { scale: 0.92, opacity: 0, y: -70, ease: "power2.in" }, 0)
+    .to(".hero-scroll-cue", { opacity: 0, ease: "none" }, 0)
+    .fromTo(".hero-quote", { opacity: 0, y: 26 }, { opacity: 1, y: 0, ease: "power2.out" }, 0.45);
+
+  // ----- interlude: word-by-word scrub reveal -----
+  var it = document.getElementById("interlude-text");
+  var words = it.textContent.trim().split(/\s+/);
+  it.innerHTML = words.map(function (w) { return '<span class="w">' + escapeHtml(w) + "</span>"; }).join(" ");
+  gsap.fromTo(it.querySelectorAll(".w"),
+    { opacity: 0.07, y: 26 },
+    {
+      opacity: 1, y: 0, stagger: 0.06, ease: "none",
+      scrollTrigger: { trigger: "#interlude", start: "top 72%", end: "bottom 58%", scrub: 0.6 }
+    });
+
+  // ----- memories: pinned horizontal reel -----
+  var track = document.getElementById("mem-track");
+  var getDist = function () { return Math.max(0, track.scrollWidth - window.innerWidth); };
+  gsap.to(track, {
+    x: function () { return -getDist(); },
+    ease: "none",
+    scrollTrigger: {
+      trigger: "#memories", start: "top top",
+      end: function () { return "+=" + getDist(); },
+      pin: true, scrub: 1, anticipatePin: 1, invalidateOnRefresh: true
+    }
+  });
+
+  // ----- notes: scrub-cycled affirmation deck -----
+  ScrollTrigger.create({
+    trigger: "#notes", start: "top 25%", end: "bottom 65%", scrub: true,
+    onUpdate: function (self) {
+      var target = Math.min(Math.floor(self.progress * wholesomeAffirmations.length), wholesomeAffirmations.length - 1);
+      if (target !== noteIndex) showNote(target, true);
+    }
+  });
+
+  // ----- dreams: editorial reveals + image parallax -----
+  gsap.utils.toArray(".dream-row").forEach(function (row) {
+    gsap.from(row, {
+      opacity: 0, y: 70, duration: 1.1, ease: "power3.out",
+      scrollTrigger: { trigger: row, start: "top 82%" }
+    });
+    var img = row.querySelector("img");
+    gsap.fromTo(img, { yPercent: -7 }, {
+      yPercent: 7, ease: "none",
+      scrollTrigger: { trigger: row, start: "top bottom", end: "bottom top", scrub: true }
+    });
+  });
+
+  // ----- music: gentle rise -----
+  gsap.from(".player", {
+    opacity: 0, y: 60, duration: 1.1, ease: "power3.out",
+    scrollTrigger: { trigger: "#music", start: "top 65%" }
+  });
+
+  // ----- finale: floating photo parallax + copy reveal -----
+  gsap.utils.toArray(".finale-photo").forEach(function (ph, i) {
+    gsap.to(ph, {
+      yPercent: i % 2 === 0 ? -18 : 14,
+      ease: "none",
+      scrollTrigger: { trigger: "#finale", start: "top bottom", end: "bottom top", scrub: true }
+    });
+  });
+  gsap.from(".finale-copy > *", {
+    opacity: 0, y: 40, duration: 1, stagger: 0.12, ease: "power3.out",
+    scrollTrigger: { trigger: "#finale", start: "top 55%" }
+  });
+  gsap.from(".site-foot", {
+    opacity: 0, duration: 1.2,
+    scrollTrigger: { trigger: "#finale", start: "top 30%" }
+  });
+
+  // ----- chrome: chapter name + progress bar -----
+  var chapters = [
+    ["#hero", "SCENE 01 — THE BEGINNING"],
+    ["#interlude", "SCENE 02 — WHY YOU"],
+    ["#memories", "SCENE 03 — THE MEMORY BOX"],
+    ["#notes", "SCENE 04 — FOR THE LOW DAYS"],
+    ["#dreams", "SCENE 05 — WHAT WE'RE BUILDING"],
+    ["#music", "SCENE 06 — THE SOUNDTRACK"],
+    ["#finale", "FINAL SCENE — FOREVER"]
+  ];
+  chapters.forEach(function (ch) {
+    ScrollTrigger.create({
+      trigger: ch[0], start: "top 50%", end: "bottom 50%",
+      onEnter: setChapter, onEnterBack: setChapter, id: ch[0]
+    });
+    function setChapter() {
+      var el = document.getElementById("chrome-chapter");
+      if (el && el.textContent !== ch[1]) el.textContent = ch[1];
+    }
+  });
+
+  gsap.to("#progress-bar", {
+    scaleX: 1, ease: "none",
+    scrollTrigger: { trigger: "#film", start: "top top", end: "bottom bottom", scrub: 0.3 }
+  });
+
+  ScrollTrigger.refresh();
+}
+
+// ============================================================
+// 6 · HEARTS CANVAS
+// ============================================================
+var heartsCanvas = document.getElementById("hearts");
+var hctx = heartsCanvas ? heartsCanvas.getContext("2d") : null;
+var hearts = [];
+var HEART_COLORS = ["#e07a8b", "#d3a578", "#b85c6e", "#f3eee9"];
+
+function resizeHearts() {
+  if (!heartsCanvas) return;
+  heartsCanvas.width = window.innerWidth;
+  heartsCanvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeHearts);
+resizeHearts();
+
+function spawnHeartBurst(x, y, count) {
+  for (var i = 0; i < count; i++) {
     hearts.push({
-      x: x + (Math.random() - 0.5) * 30,
-      y: y + (Math.random() - 0.5) * 30,
-      size: Math.random() * 12 + 10,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      vx: (Math.random() - 0.5) * 3,
-      vy: -(Math.random() * 3 + 2),
+      x: x + (Math.random() - 0.5) * 60,
+      y: y + (Math.random() - 0.5) * 40,
+      size: Math.random() * 14 + 9,
+      color: HEART_COLORS[Math.floor(Math.random() * HEART_COLORS.length)],
+      vx: (Math.random() - 0.5) * 2.4,
+      vy: -(Math.random() * 2.6 + 1.6),
       life: 0,
-      maxLife: 50
+      maxLife: 60 + Math.random() * 30
     });
   }
 }
 
-window.addEventListener('click', (e) => {
-  if (!e.target.closest('button') && !e.target.closest('input')) {
-    spawnFloatingHeart(e.clientX, e.clientY);
+window.addEventListener("click", function (e) {
+  if (e.target.closest("button") || e.target.closest("a") || e.target.closest("input") ||
+      e.target.closest(".hug-overlay") || e.target.closest("#gate")) return;
+  spawnHeartBurst(e.clientX, e.clientY, 5);
+});
+
+function renderHearts() {
+  if (!hctx) return;
+  hctx.clearRect(0, 0, heartsCanvas.width, heartsCanvas.height);
+  for (var i = hearts.length - 1; i >= 0; i--) {
+    var h = hearts[i];
+    h.x += h.vx;
+    h.y += h.vy;
+    h.vy += 0.015; // gentle gravity drift
+    h.life++;
+    hctx.save();
+    hctx.globalAlpha = Math.max(0, 1 - h.life / h.maxLife);
+    hctx.fillStyle = h.color;
+    hctx.font = h.size + "px serif";
+    hctx.fillText("❤", h.x, h.y);
+    hctx.restore();
+    if (h.life >= h.maxLife) hearts.splice(i, 1);
+  }
+  requestAnimationFrame(renderHearts);
+}
+if (hctx) renderHearts();
+
+// ============================================================
+// 7 · ADMIN ACCESS — triple-click the SANCTUARY logo
+// ============================================================
+var clickCount = 0, clickTimer = null;
+document.getElementById("chrome-logo").addEventListener("click", function () {
+  clickCount++;
+  clearTimeout(clickTimer);
+  clickTimer = setTimeout(function () { clickCount = 0; }, 700);
+  if (clickCount >= 3) {
+    clickCount = 0;
+    window.location.href = "admin.html";
   }
 });
 
-function renderHeartParticles() {
-  if (!ctx || !heartCanvas) return;
-  ctx.clearRect(0, 0, heartCanvas.width, heartCanvas.height);
-  for (let i = hearts.length - 1; i >= 0; i--) {
-    const h = hearts[i];
-    h.x += h.vx;
-    h.y += h.vy;
-    h.life++;
-    ctx.save();
-    ctx.globalAlpha = Math.max(0, 1 - (h.life / h.maxLife));
-    ctx.fillStyle = h.color;
-    ctx.font = `${h.size}px serif`;
-    ctx.fillText('❤', h.x, h.y);
-    ctx.restore();
-    if (h.life >= h.maxLife) hearts.splice(i, 1);
-  }
-  requestAnimationFrame(renderHeartParticles);
+// ============================================================
+// 8 · INIT
+// ============================================================
+var experienceStarted = false;
+
+function refreshTriggers() {
+  if (HAS_GSAP && experienceStarted) ScrollTrigger.refresh();
 }
-renderHeartParticles();
 
-// --- 8. INITIALIZATION ---
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.lucide) lucide.createIcons();
+function startExperience() {
+  if (experienceStarted) return;
+  experienceStarted = true;
 
-  const isUnlocked = sessionStorage.getItem('sanctuary_unlocked');
-  const gate = document.getElementById('sanctuary-gate');
-  const skeleton = document.getElementById('skeleton-backdrop');
+  initSmoothScroll();
 
-  if (isUnlocked === 'true' && gate) {
-    gate.style.display = 'none';
-    if (skeleton) skeleton.style.display = 'none';
-    document.body.classList.remove('gate-locked');
-  } else {
-    document.body.classList.add('gate-locked');
+  // finale photo collage
+  var finale = document.getElementById("finale-photos");
+  var srcs = ["memory1.jpg", "memory2.jpg", "memory3.jpg", "cover.jpg"];
+  if (finale && !finale.childElementCount) {
+    finale.innerHTML = srcs.map(function (s) {
+      return '<div class="finale-photo"><img src="' + s + '" alt="" loading="lazy" /></div>';
+    }).join("");
   }
 
-  loadHeroCustom();
+  // hero title entrance — immediately, never wait on the network
+  if (HAS_GSAP && !REDUCED) {
+    gsap.to(".hero-title .line > span", { y: 0, duration: 1.3, ease: "power4.out", stagger: 0.14, delay: 0.35 });
+    gsap.from("#hero-copy .scene-label", { opacity: 0, y: 12, duration: 1, delay: 0.2 });
+  } else {
+    document.querySelectorAll(".hero-title .line > span").forEach(function (s) { s.style.transform = "none"; });
+  }
+
+  // scroll story first (trigger distances recalc when data renders)
+  buildScrollStory();
+
+  initNotes();
+  initPlayer();
+  loadFavoriteViews();
   loadDreams();
   loadMemories();
+
+  // re-measure once all images have settled
+  window.addEventListener("load", function () {
+    if (HAS_GSAP) ScrollTrigger.refresh();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  initGate();
 });
