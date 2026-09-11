@@ -1,497 +1,210 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MY LOVE ✦ Forever & Always</title>
+  <title>SANCTUARY — a film for you</title>
+  <meta name="robots" content="noindex" />
 
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-  <!-- Supabase Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-      
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            blush: {
-              50: '#FFF5F6',
-              100: '#FDE2E4',
-              200: '#FAC8CD',
-              300: '#F49FAB',
-              400: '#E78895',
-              500: '#D96576',
-              600: '#BE4B5C',
-            },
-            cream: {
-              50: '#FCFAF7',
-              100: '#FAF6F0',
-              200: '#F4ECE1',
-              300: '#EADBCA',
-            },
-            champagne: {
-              100: '#F7EFE5',
-              200: '#EAD7C3',
-              300: '#DFB78C',
-              400: '#C99E74',
-            },
-            rosewood: '#3E2E31',
-          },
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-            serif: ['"Playfair Display"', 'serif'],
-            hand: ['"Caveat"', 'cursive'],
-          },
-          animation: {
-            'float-slow': 'float 6s ease-in-out infinite',
-            'pulse-subtle': 'pulseSlow 4s ease-in-out infinite',
-            'spin-slow': 'spin 12s linear infinite',
-          },
-          keyframes: {
-            float: {
-              '0%, 100%': { transform: 'translateY(0px)' },
-              '50%': { transform: 'translateY(-10px)' },
-            },
-            pulseSlow: {
-              '0%, 100%': { transform: 'scale(1)', opacity: '1' },
-              '50%': { transform: 'scale(1.03)', opacity: '0.92' },
-            }
-          }
-        }
-      }
-    }
-  </script>
-
-  <!-- Lucide Icons & Canvas Confetti -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Space+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="style.css" />
 </head>
+<body class="locked">
 
-<body class="bg-cream-100 text-rosewood font-sans antialiased selection:bg-blush-200 selection:text-blush-600 min-h-screen relative overflow-x-hidden gate-locked">
+  <!-- film grain + vignette -->
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
 
-  <!-- Skeleton Wireframe Mockup -->
-  <div id="skeleton-backdrop" class="fixed inset-0 z-[9998] p-6 max-w-4xl mx-auto space-y-8 pointer-events-none overflow-hidden select-none">
-    <div class="h-80 w-full bg-stone-200/70 rounded-3xl animate-pulse flex flex-col justify-end p-8 space-y-3">
-      <div class="h-6 w-32 bg-stone-300/80 rounded-full"></div>
-      <div class="h-8 w-3/4 bg-stone-300/80 rounded-xl"></div>
-      <div class="h-4 w-1/2 bg-stone-300/80 rounded-lg"></div>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="h-48 bg-stone-200/60 rounded-3xl animate-pulse p-6 space-y-4">
-        <div class="h-6 w-1/3 bg-stone-300/70 rounded-full"></div>
-        <div class="h-4 w-full bg-stone-300/70 rounded-lg"></div>
-      </div>
-      <div class="h-48 bg-stone-200/60 rounded-3xl animate-pulse p-6 space-y-4">
-        <div class="h-6 w-1/3 bg-stone-300/70 rounded-full"></div>
-        <div class="h-4 w-full bg-stone-300/70 rounded-lg"></div>
-      </div>
-    </div>
-  </div>
+  <!-- ==================== CINEMATIC LOGIN GATE ==================== -->
+  <div id="gate" class="gate">
+    <div class="gate-glow" aria-hidden="true"></div>
+    <div class="gate-inner">
+      <p class="gate-eyebrow">A private screening</p>
+      <h1 class="gate-title">SANCTUARY</h1>
+      <p class="gate-sub">This story is for two people only.</p>
 
-  <!-- Frosted Passcode Screen -->
-  <div id="sanctuary-gate" class="fixed inset-0 z-[99999] flex items-center justify-center bg-[#FAF7F2]/80 backdrop-blur-2xl transition-all duration-700">
-    <div id="gate-card" class="w-full max-w-sm mx-4 bg-white/90 backdrop-blur-md p-8 rounded-3xl border border-blush-200/60 shadow-2xl shadow-blush-500/10 text-center relative overflow-hidden transition-all">
-      <div class="w-16 h-16 bg-gradient-to-tr from-blush-200 to-blush-100 rounded-2xl flex items-center justify-center mx-auto mb-5 text-blush-600 shadow-inner">
-        <i data-lucide="lock" class="w-7 h-7"></i>
-      </div>
-      
-      <h2 class="text-2xl font-serif font-bold text-rosewood mb-1">Our Sanctuary</h2>
-      <p class="text-xs text-gray-500 mb-6 font-sans">Enter our secret password to enter 🗝️✨</p>
-
-      <form onsubmit="handleUnlockAttempt(event)" class="space-y-4">
-        <div class="relative">
-          <input 
-            type="password" 
-            id="gate-password-input" 
-            placeholder="Secret Passcode..." 
-            autocomplete="off"
-            class="w-full px-4 py-3 text-center text-sm tracking-widest rounded-2xl border border-gray-200 bg-white/90 focus:outline-none focus:ring-2 focus:ring-blush-400 focus:border-transparent transition shadow-inner"
-            required
-          />
+      <form id="gate-form" autocomplete="off">
+        <div class="gate-field">
+          <input id="gate-input" type="password" placeholder="enter the passcode" autocomplete="off" required />
+          <button type="submit" aria-label="Enter">→</button>
         </div>
-
-        <p id="gate-error-msg" class="text-xs text-red-500 font-medium hidden">Incorrect passcode, try again sweetie ❤️</p>
-
-        <button 
-          type="submit" 
-          class="w-full py-3 px-6 bg-gradient-to-r from-blush-500 to-blush-600 hover:from-blush-600 hover:to-blush-700 text-white text-sm font-semibold rounded-2xl shadow-lg shadow-blush-500/30 transition transform active:scale-95 flex items-center justify-center gap-2">
-          <span>Unlock</span>
-          <i data-lucide="key-round" class="w-4 h-4"></i>
-        </button>
+        <p id="gate-error" class="gate-error">wrong passcode — try again, love</p>
       </form>
+
+      <p class="gate-foot">EST. FOREVER · RUNTIME ∞</p>
     </div>
+    <p class="gate-corner gate-corner--tl">NOW SHOWING</p>
+    <p class="gate-corner gate-corner--br">NO TICKETS SOLD AT DOOR</p>
   </div>
 
-  <canvas id="heart-canvas"></canvas>
-
-  <!-- Background Glows -->
-  <div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-    <div class="absolute -top-32 -left-32 w-96 h-96 bg-blush-200/40 rounded-full blur-3xl"></div>
-    <div class="absolute top-1/3 -right-32 w-[30rem] h-[30rem] bg-champagne-200/50 rounded-full blur-3xl"></div>
-    <div class="absolute -bottom-32 left-1/4 w-[28rem] h-[28rem] bg-blush-100/60 rounded-full blur-3xl"></div>
+  <!-- ==================== FIXED CHROME ==================== -->
+  <div class="chrome" aria-hidden="true">
+    <span class="chrome-left"><span class="chrome-dot"></span><span id="chrome-chapter">SCENE 01 — THE BEGINNING</span>
+    </span>
+    <span class="chrome-center" id="chrome-logo" title="sanctuary">SANCTUARY</span>
+    <span class="chrome-right">DIR. YOURS TRULY</span>
   </div>
+  <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
 
-  <!-- Navigation -->
-  <header class="sticky top-0 z-30 glass-nav transition-all duration-300">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-18 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <a href="#" class="flex items-center gap-2 group">
-          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blush-400 to-champagne-300 flex items-center justify-center shadow-md shadow-blush-300/30 group-hover:scale-105 transition-transform">
-            <i data-lucide="heart" class="w-5 h-5 text-white fill-white animate-pulse"></i>
-          </div>
-          <div class="flex flex-col">
-            <span class="font-serif font-bold text-lg text-rosewood leading-tight">MY LOVE</span>
-            <span class="text-[11px] text-blush-500 font-medium tracking-wide uppercase">Forever & Always</span>
-          </div>
-        </a>
+  <main id="film">
 
-        <div class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-white/80 border border-blush-200/60 rounded-full text-xs shadow-sm ml-2">
-          <span class="text-gray-400">For my</span>
-          <span id="nickname-badge" class="font-semibold text-blush-500 transition-all duration-300 inline-block min-w-[75px] text-center">wifey</span>
-          <span>✨</span>
-        </div>
+    <!-- ==================== SCENE 01 · HERO ==================== -->
+    <section id="hero" class="scene scene-hero">
+      <div class="hero-zoom" id="hero-zoom">
+        <div class="hero-stack" id="hero-stack"><!-- favorite view layers rendered by JS --></div>
+        <div class="hero-shade" aria-hidden="true"></div>
       </div>
 
-      <div class="flex items-center gap-2 sm:gap-3">
-        <!-- Music Hub Toggle -->
-        <button onclick="openMusicModal()" title="Open Music Player" class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/90 hover:bg-white text-xs font-medium border border-champagne-200 text-rosewood hover:text-blush-500 transition-all shadow-sm active:scale-95 group">
-          <div class="w-4 h-4 flex items-center justify-center text-blush-500">
-            <i data-lucide="music" class="w-4 h-4"></i>
-          </div>
-          <span id="nav-music-title" class="font-semibold max-w-[100px] sm:max-w-[130px] truncate">Lofi Chimes</span>
-          <div id="nav-audio-equalizer" class="hidden items-end gap-0.5 h-3.5 px-0.5">
-            <span class="equalizer-bar w-0.5 bg-blush-400 rounded-full" style="animation-delay: 0.1s"></span>
-            <span class="equalizer-bar w-0.5 bg-blush-500 rounded-full" style="animation-delay: 0.3s"></span>
-            <span class="equalizer-bar w-0.5 bg-blush-400 rounded-full" style="animation-delay: 0.2s"></span>
-          </div>
-        </button>
-
-        <button id="burst-love-btn" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blush-400 to-blush-500 hover:from-blush-500 hover:to-blush-600 text-white text-xs sm:text-sm font-semibold rounded-full shadow-md shadow-blush-400/30 active:scale-95 transition-all">
-          <i data-lucide="sparkles" class="w-4 h-4"></i>
-          <span>Send Love</span>
-        </button>
+      <div class="hero-copy" id="hero-copy">
+        <p class="scene-label">SCENE 01 — THE BEGINNING</p>
+        <h1 class="hero-title">
+          <span class="line"><span>To my entire</span></span>
+          <span class="line"><span>universe &amp;</span></span>
+          <span class="line"><span>soulmate</span></span>
+        </h1>
       </div>
-    </div>
-  </header>
 
-  <!-- Main Presentation Container -->
-  <main class="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-24 space-y-16">
+      <div class="hero-quote" aria-live="polite"></div>
 
-    <!-- 1. Hero Section with Dynamic Stackable Favorite View -->
-    <section class="relative">
-      <div class="glass-card rounded-3xl p-6 sm:p-10 md:p-12 shadow-xl shadow-blush-200/30 border border-white/90 relative overflow-hidden">
-        <div class="absolute -right-20 -top-20 w-80 h-80 bg-blush-100/70 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="hero-scroll-cue" aria-hidden="true"><span>scroll to begin</span><i></i></div>
+    </section>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-          <div class="lg:col-span-7 space-y-5 text-left">
-            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blush-100/80 border border-blush-200 text-blush-600 text-xs font-semibold tracking-wide">
-              <i data-lucide="heart" class="w-3.5 h-3.5 fill-blush-500"></i>
-              <span>To My Entire Universe & Soulmate</span>
-            </div>
+    <!-- ==================== SCENE 02 · INTERLUDE ==================== -->
+    <section id="interlude" class="scene scene-interlude">
+      <p class="scene-label">SCENE 02 — WHY YOU</p>
+      <h2 class="interlude-text" id="interlude-text">Every single day with you is the sweetest blessing. You are my best friend, my greatest confidante, and the woman I cannot wait to marry. Thank you for filling every corner of my life with gentle warmth, goofy laughs, and boundless happiness.</h2>
+    </section>
 
-            <h1 class="font-serif text-3xl sm:text-4xl md:text-5xl text-rosewood font-bold leading-tight">
-              You Are My <span class="text-transparent bg-clip-text bg-gradient-to-r from-blush-500 to-champagne-400">Whole World</span> & Safe Haven.
-            </h1>
-
-            <p class="text-rosewood/80 text-sm sm:text-base leading-relaxed font-light">
-              Every single day with you is the sweetest blessing. You are my best friend, my greatest confidante, and the woman I cannot wait to marry. Thank you for filling every corner of my life with gentle warmth, goofy laughs, and boundless happiness.
-            </p>
-
-            <div class="pt-2 grid grid-cols-3 gap-3 sm:gap-4 max-w-md">
-              <div class="bg-white/80 p-3 rounded-2xl border border-blush-100 text-center shadow-sm">
-                <span class="block font-serif text-lg sm:text-2xl font-bold text-blush-500">365+</span>
-                <span class="text-[11px] text-gray-500 uppercase tracking-wider font-medium">Days In Love</span>
-              </div>
-              <div class="bg-white/80 p-3 rounded-2xl border border-blush-100 text-center shadow-sm">
-                <span class="block font-serif text-lg sm:text-2xl font-bold text-champagne-400">∞</span>
-                <span class="text-[11px] text-gray-500 uppercase tracking-wider font-medium">Kisses Owed</span>
-              </div>
-              <div class="bg-white/80 p-3 rounded-2xl border border-blush-100 text-center shadow-sm">
-                <span class="block font-serif text-lg sm:text-2xl font-bold text-blush-500">100%</span>
-                <span class="text-[11px] text-gray-500 uppercase tracking-wider font-medium">Forever Mine</span>
-              </div>
-            </div>
-
-            <div class="flex flex-wrap gap-3 pt-2">
-              <button onclick="scrollToSection('dream-board')" class="px-5 py-2.5 rounded-xl bg-white border border-champagne-200 hover:border-blush-300 text-rosewood text-xs sm:text-sm font-medium transition shadow-sm flex items-center gap-2">
-                <i data-lucide="compass" class="w-4 h-4 text-champagne-400"></i>
-                <span>Explore Our Dreams</span>
-              </button>
-              <button onclick="triggerLoveShower()" class="px-5 py-2.5 rounded-xl bg-blush-100 hover:bg-blush-200/80 text-blush-600 text-xs sm:text-sm font-semibold transition flex items-center gap-2">
-                <i data-lucide="smile" class="w-4 h-4"></i>
-                <span>I Love You More!</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- DYNAMIC HERO VIEW -->
-          <div class="lg:col-span-5 flex justify-center">
-            <div class="relative w-full max-w-sm">
-              <div id="hero-card-container" class="bg-white p-5 rounded-3xl shadow-xl border border-blush-100 transform rotate-1 hover:rotate-0 transition-all duration-500 space-y-4">
-                <div class="relative rounded-2xl overflow-hidden aspect-[4/3] bg-blush-50 flex items-center justify-center shadow-inner">
-                  <img
-                    id="hero-img"
-                    src="cover.jpg"
-                    alt="Favorite View"
-                    onerror="this.src='https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=800&q=80'"
-                    class="w-full h-full object-cover transition-opacity duration-300"
-                  />
-                  <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-                  <div class="absolute bottom-3 left-3 text-white">
-                    <span id="hero-badge" class="text-xs bg-white/30 backdrop-blur-md px-2.5 py-1 rounded-full font-medium">My Favorite View</span>
-                  </div>
-                </div>
-
-                <div class="space-y-1">
-                  <div class="flex items-center justify-between text-xs text-gray-400">
-                    <span id="hero-date">Today</span>
-                    <span id="hero-subtag" class="text-blush-400 font-hand text-base font-medium"></span>
-                  </div>
-                  <p id="hero-quote" class="font-hand text-2xl text-rosewood leading-tight pt-1 transition-opacity duration-300">
-                    "No matter where life takes us, my heart will always beat for you."
-                  </p>
-                </div>
-
-                <!-- STACK CONTROLS -->
-                <div id="hero-stack-controls" class="hidden items-center justify-between pt-2 border-t border-gray-100">
-                  <button onclick="prevHeroView()" class="p-1.5 rounded-full hover:bg-blush-50 text-gray-400 hover:text-blush-500 transition">
-                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
-                  </button>
-                  <span id="hero-stack-counter" class="text-[11px] font-mono text-gray-400">1 / 1</span>
-                  <button onclick="nextHeroView()" class="p-1.5 rounded-full hover:bg-blush-50 text-gray-400 hover:text-blush-500 transition">
-                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Floating Pill -->
-              <div id="hero-floating-pill-container" class="absolute -bottom-4 -left-4 bg-champagne-100 border border-champagne-300 px-3.5 py-1.5 rounded-full shadow-lg text-xs font-serif italic text-champagne-400 flex items-center gap-1.5 animate-float-slow">
-                <span id="hero-floating-badge"></span>
-              </div>
-            </div>
-          </div>
+    <!-- ==================== SCENE 03 · MEMORIES (horizontal) ==================== -->
+    <section id="memories" class="scene scene-memories">
+      <div class="mem-track" id="mem-track">
+        <div class="mem-panel mem-panel--intro">
+          <p class="scene-label">SCENE 03 — THE MEMORY BOX</p>
+          <h2 class="mem-heading">Snapshots of the moments that made me fall <em>deeper</em> in love with you.</h2>
+          <p class="mem-hint">keep scrolling — the reel moves sideways</p>
         </div>
+        <!-- memory panels rendered by JS -->
       </div>
     </section>
 
-    <!-- 2. Uplifting Section -->
-    <section id="uplifting-hub" class="space-y-6">
-      <div class="text-center max-w-xl mx-auto space-y-2">
-        <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-blush-500">
-          <i data-lucide="sun-medium" class="w-4 h-4"></i>
-          <span>Your Emergency Sunshine</span>
-        </div>
-        <h2 class="font-serif text-2xl sm:text-3xl text-rosewood font-bold">For When You Feel Low</h2>
-        <p class="text-sm text-gray-600">Whenever work is tiring, your mind is overwhelmed, or you just need a reminder of how extraordinary you are.</p>
+    <!-- ==================== SCENE 04 · NOTES (for the low days) ==================== -->
+    <section id="notes" class="scene scene-notes">
+      <div class="notes-head">
+        <p class="scene-label">SCENE 04 — FOR THE LOW DAYS</p>
+        <h2 class="notes-title">Open when you feel low.</h2>
+        <p class="notes-sub">Whenever work is tiring, your mind is overwhelmed, or you just need a reminder of how extraordinary you are.</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="glass-card rounded-3xl p-6 sm:p-8 flex flex-col justify-between hover:shadow-lg transition-all border border-blush-100">
-          <div class="space-y-4">
-            <div class="w-12 h-12 rounded-2xl bg-blush-100 flex items-center justify-center text-blush-500">
-              <i data-lucide="heart-handshake" class="w-6 h-6"></i>
-            </div>
-            <h3 class="font-serif text-xl font-bold text-rosewood">Give Me An Instant Hug 🫂</h3>
-            <p class="text-xs sm:text-sm text-gray-600 leading-relaxed">
-              Feeling stressed, sad, or tired? Tap here to activate your gentle virtual embrace, breathing circle, and a cozy reminder that everything is going to be okay.
-            </p>
+      <div class="note-stage">
+        <div class="note-card" id="note-card">
+          <p class="note-index" id="note-count">01 / 12</p>
+          <p class="note-text" id="note-text"></p>
+          <p class="note-sign">— always in your corner</p>
+        </div>
+      </div>
+
+      <div class="notes-actions">
+        <button id="hug-open" class="ghost-btn">i need a hug right now</button>
+      </div>
+    </section>
+
+    <!-- hug overlay -->
+    <div id="hug-overlay" class="hug-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="hug-card">
+        <button id="hug-close" class="hug-close" aria-label="Close">✕</button>
+        <div class="hug-breathe" aria-hidden="true"><span></span></div>
+        <p class="scene-label">breathe in… and breathe out</p>
+        <h3>You are wrapped in my love.</h3>
+        <p class="hug-body">Close your eyes for three seconds. Imagine my arms around you, holding you tight and safe. Whatever is weighing on your heart right now, you don't have to carry it alone. I am always right here.</p>
+        <p class="hug-quote">“I love you in all your moods, on easy days and hard days alike.”</p>
+        <button id="hug-warm" class="solid-btn">i feel warmer now</button>
+      </div>
+    </div>
+
+    <!-- ==================== SCENE 05 · DREAMS ==================== -->
+    <section id="dreams" class="scene scene-dreams">
+      <div class="dreams-head">
+        <p class="scene-label">SCENE 05 — WHAT WE'RE BUILDING</p>
+        <h2 class="dreams-title">Our future together — <em>already real to me.</em></h2>
+        <p class="dreams-sub">The beautiful little life we are building piece by piece, hand in hand.</p>
+      </div>
+      <div class="dream-list" id="dream-list"><!-- dreams rendered by JS --></div>
+    </section>
+
+    <!-- ==================== SCENE 06 · SOUNDTRACK ==================== -->
+    <section id="music" class="scene scene-music">
+      <div class="music-head">
+        <p class="scene-label">SCENE 06 — THE SOUNDTRACK</p>
+        <h2 class="music-title">Our music <em>sanctuary.</em></h2>
+      </div>
+
+      <div class="player">
+        <div class="disc-wrap">
+          <div class="disc" id="disc"><span class="disc-hole"></span></div>
+        </div>
+
+        <div class="player-info">
+          <p class="player-now">NOW PLAYING</p>
+          <p class="player-title" id="track-title">—</p>
+          <p class="player-artist" id="track-artist">—</p>
+
+          <div class="seek">
+            <input id="seek" type="range" min="0" max="100" step="0.1" value="0" aria-label="Seek" />
+            <div class="times"><span id="t-cur">0:00</span><span id="t-dur">0:00</span></div>
           </div>
-          <div class="pt-6">
-            <button onclick="openHugModal()" class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-blush-400 to-blush-500 hover:from-blush-500 hover:to-blush-600 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-md shadow-blush-300/40 active:scale-95 transition-all">
-              <i data-lucide="sparkle" class="w-4 h-4"></i>
-              <span>Receive Your Cozy Hug</span>
+
+          <div class="controls">
+            <button id="btn-prev" class="ctl" aria-label="Previous track">
+              <svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z" /></svg>
+            </button>
+            <button id="btn-play" class="ctl ctl--main" aria-label="Play / pause">
+              <svg id="icon-play" viewBox="0 0 24 24"><path d="M7 4l14 8-14 8z" /></svg>
+              <svg id="icon-pause" viewBox="0 0 24 24" class="hidden"><path d="M6 4h4v16H6zM14 4h4v16h-4z" /></svg>
+            </button>
+            <button id="btn-next" class="ctl" aria-label="Next track">
+              <svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5l11 7-11 7z" /></svg>
             </button>
           </div>
         </div>
 
-        <div class="glass-card rounded-3xl p-6 sm:p-8 flex flex-col justify-between hover:shadow-lg transition-all border border-champagne-200">
-          <div class="space-y-4">
-            <div class="w-12 h-12 rounded-2xl bg-champagne-100 flex items-center justify-center text-champagne-400">
-              <i data-lucide="feather" class="w-6 h-6"></i>
-            </div>
-            <div class="flex items-center justify-between">
-              <h3 class="font-serif text-xl font-bold text-rosewood">Draw a Wholesome Reminder 💌</h3>
-              <span id="quote-number-badge" class="text-[11px] font-semibold bg-champagne-100 text-champagne-400 px-2.5 py-0.5 rounded-full">#1</span>
-            </div>
-            <div class="min-h-[110px] sm:min-h-[120px] flex items-center justify-center">
-              <div id="affirmation-card" class="w-full h-full bg-white/90 rounded-2xl p-5 border border-blush-100 text-center flex flex-col justify-center items-center shadow-inner transition-all duration-500">
-                <p id="affirmation-text" class="font-serif italic text-base sm:text-lg text-rosewood transition-opacity duration-300">
-                  "You are the most precious part of my life, and nothing can diminish how brilliant, strong, and capable you are."
-                </p>
-                <span class="text-xs font-hand text-blush-500 mt-2">— Always in your corner</span>
-              </div>
-            </div>
-          </div>
-          <div class="pt-4">
-            <button onclick="drawNewAffirmation()" class="w-full py-3 px-4 rounded-2xl bg-white hover:bg-cream-50 border border-champagne-300 text-rosewood font-medium text-sm flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all">
-              <i data-lucide="refresh-cw" class="w-4 h-4 text-champagne-400" id="draw-icon"></i>
-              <span>Draw Another Reminder</span>
-            </button>
-          </div>
+        <div class="playlist-wrap">
+          <p class="playlist-label">QUEUE</p>
+          <ol id="playlist" class="playlist"></ol>
         </div>
       </div>
     </section>
 
-    <!-- 3. Dreams Section -->
-    <section id="dream-board" class="space-y-6">
-      <div class="border-b border-blush-200/60 pb-4">
-        <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-blush-500">
-          <i data-lucide="sparkles" class="w-4 h-4"></i>
-          <span>Manifesting Our Forever</span>
+    <!-- ==================== SCENE 07 · FINALE ==================== -->
+    <section id="finale" class="scene scene-finale">
+      <div class="finale-photos" id="finale-photos" aria-hidden="true"></div>
+
+      <div class="finale-copy">
+        <p class="scene-label">FINAL SCENE — FOREVER</p>
+        <h2 class="finale-title">You're my today and <em>all of my tomorrows.</em></h2>
+        <p class="finale-body">No matter how fast the world moves, this little sanctuary will always be here to remind you how endlessly cherished, valued, and adored you are.</p>
+        <p class="finale-sign">— your ullu who loves you the most, and your cute butt ❤️</p>
+      </div>
+
+      <footer class="site-foot">
+        <p>made with love, only for you</p>
+        <div class="foot-right">
+          <span class="foot-fade">THE END —</span>
+          <a href="admin.html" id="foot-edit" title="editor">✎</a>
         </div>
-        <h2 class="font-serif text-2xl sm:text-3xl text-rosewood font-bold">Our Future Together</h2>
-        <p class="text-sm text-gray-600">The beautiful little life we are building piece by piece, hand in hand.</p>
-      </div>
-
-      <div id="dreams-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-    </section>
-
-    <!-- 4. Memory Box Section -->
-    <section id="memory-box" class="space-y-6">
-      <div class="border-b border-blush-200/60 pb-4">
-        <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-blush-500">
-          <i data-lucide="camera" class="w-4 h-4"></i>
-          <span>Our Keepsakes & Adventures</span>
-        </div>
-        <h2 class="font-serif text-2xl sm:text-3xl text-rosewood font-bold">Our Memory Box</h2>
-        <p class="text-sm text-gray-600">Snapshots of the moments that made me fall deeper in love with you.</p>
-      </div>
-
-      <div id="memory-gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
-    </section>
-
-    <!-- Love Letter Footer -->
-    <section class="glass-card rounded-3xl p-8 sm:p-12 text-center max-w-3xl mx-auto space-y-4 border border-blush-200 relative overflow-hidden">
-      <div class="w-12 h-12 mx-auto rounded-full bg-blush-100 flex items-center justify-center text-blush-500 mb-2">
-        <i data-lucide="infinity" class="w-6 h-6"></i>
-      </div>
-      <h3 class="font-serif text-2xl sm:text-3xl font-bold text-rosewood">You're My Today and All of My Tomorrows</h3>
-      <p class="text-sm text-gray-600 font-light leading-relaxed max-w-xl mx-auto">
-        No matter how fast the world moves, this little sanctuary will always be here to remind you how endlessly cherished, valued, and adored you are.
-      </p>
-      <div class="pt-3 font-hand text-3xl sm:text-4xl text-blush-500">
-        Your ullu who loves you the most and your cute butt ❤️
-      </div>
+      </footer>
     </section>
 
   </main>
 
-  <!-- Hug Modal -->
-  <div id="hug-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-rosewood/40 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
-    <div class="glass-card bg-white/95 rounded-3xl max-w-md w-full p-6 sm:p-8 text-center space-y-6 shadow-2xl border border-blush-200 transform scale-95 transition-all duration-300 relative overflow-hidden" id="hug-modal-content">
-      <button onclick="closeHugModal()" class="absolute top-4 right-4 text-gray-400 hover:text-rosewood p-1.5 rounded-full hover:bg-gray-100 transition">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
+  <canvas id="hearts" aria-hidden="true"></canvas>
 
-      <div class="relative w-28 h-28 mx-auto flex items-center justify-center">
-        <div class="absolute inset-0 rounded-full bg-blush-200/60 animate-ping opacity-75"></div>
-        <div class="absolute inset-2 rounded-full bg-blush-300/40 animate-pulse"></div>
-        <div class="relative w-20 h-20 rounded-full bg-gradient-to-tr from-blush-400 to-blush-500 flex items-center justify-center text-white shadow-lg shadow-blush-400/40 animate-pulse-subtle">
-          <i data-lucide="heart" class="w-10 h-10 fill-white"></i>
-        </div>
-      </div>
-
-      <div class="space-y-2">
-        <span class="text-xs uppercase font-bold tracking-widest text-blush-500">Breathe in... and breathe out</span>
-        <h3 class="font-serif text-2xl font-bold text-rosewood">You are wrapped in my love.</h3>
-        <p class="text-xs sm:text-sm text-gray-600 leading-relaxed pt-1">
-          Close your eyes for three seconds. Imagine my arms around you, holding you tight and safe. Whatever is weighing on your heart right now, you don't have to carry it alone. I am always right here.
-        </p>
-      </div>
-
-      <div class="bg-cream-50 p-4 rounded-2xl border border-champagne-200 text-rosewood/80 font-hand text-xl">
-        "I love you in all your moods, on easy days and hard days alike."
-      </div>
-
-      <button onclick="closeHugModal(); triggerLoveShower();" class="w-full py-3 rounded-2xl bg-blush-500 hover:bg-blush-600 text-white font-semibold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2">
-        <i data-lucide="heart" class="w-4 h-4 fill-white"></i>
-        <span>I Feel Warmer Now</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- Music Modal -->
-  <div id="music-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-rosewood/40 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
-    <div class="glass-card bg-white/95 rounded-3xl max-w-lg w-full p-6 sm:p-7 space-y-5 shadow-2xl border border-blush-200 transform scale-95 transition-all duration-300 max-h-[92vh] overflow-y-auto" id="music-modal-content">
-      <div class="flex items-center justify-between border-b border-blush-100 pb-3">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-xl bg-blush-100 flex items-center justify-center text-blush-500">
-            <i data-lucide="disc" class="w-5 h-5"></i>
-          </div>
-          <div>
-            <h3 class="font-serif text-lg font-bold text-rosewood leading-tight">Our Music Sanctuary</h3>
-            <span class="text-[11px] text-gray-500 font-medium">Lofi Chimes & Custom Song Queue</span>
-          </div>
-        </div>
-        <button onclick="closeMusicModal()" class="text-gray-400 hover:text-rosewood p-1 rounded-full hover:bg-gray-100 transition">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <div class="flex rounded-2xl bg-cream-200/60 p-1 text-xs font-semibold">
-        <button id="mode-synth-tab" onclick="switchAudioMode('synth')" class="flex-1 py-2 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 bg-white text-blush-600 shadow-sm">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-          <span>Lofi Chimes (Synth)</span>
-        </button>
-        <button id="mode-queue-tab" onclick="switchAudioMode('queue')" class="flex-1 py-2 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 text-gray-600 hover:text-rosewood">
-          <i data-lucide="list-music" class="w-3.5 h-3.5"></i>
-          <span>Playlist (<span id="queue-count-badge">0</span>)</span>
-        </button>
-      </div>
-
-      <div class="bg-gradient-to-tr from-blush-50 to-champagne-100/60 rounded-2xl p-5 border border-blush-200/70 flex flex-col items-center text-center space-y-3 relative overflow-hidden">
-        <div class="relative w-24 h-24 rounded-full bg-rosewood shadow-lg flex items-center justify-center border-4 border-champagne-300" id="vinyl-disc">
-          <div class="w-8 h-8 rounded-full bg-blush-200 flex items-center justify-center border-2 border-white">
-            <i data-lucide="heart" class="w-4 h-4 fill-blush-500 text-blush-500"></i>
-          </div>
-        </div>
-
-        <div class="space-y-0.5 max-w-full px-2">
-          <h4 id="player-title" class="font-serif text-lg font-bold text-rosewood truncate">Dreamy Ambient Chimes</h4>
-          <p id="player-subtitle" class="text-xs text-gray-500 truncate">Procedural Ambient Synthesizer ✨</p>
-        </div>
-
-        <div id="queue-seek-section" class="w-full space-y-1 hidden">
-          <input type="range" id="song-progress" value="0" min="0" max="100" step="0.1" oninput="handleSeek(this.value)" class="w-full h-1.5 bg-blush-200 rounded-lg appearance-none cursor-pointer accent-blush-500" />
-          <div class="flex justify-between text-[10px] text-gray-400 font-mono px-0.5">
-            <span id="current-time">0:00</span>
-            <span id="duration-time">0:00</span>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-center gap-4 pt-1">
-          <button onclick="playPrevTrack()" title="Previous Song" id="prev-btn" class="p-2 text-gray-400 hover:text-rosewood transition disabled:opacity-30">
-            <i data-lucide="skip-back" class="w-5 h-5"></i>
-          </button>
-          <button onclick="toggleMainPlayState()" id="main-play-btn" class="w-12 h-12 rounded-full bg-gradient-to-r from-blush-400 to-blush-500 hover:from-blush-500 hover:to-blush-600 text-white flex items-center justify-center shadow-md shadow-blush-300/50 active:scale-95 transition-all">
-            <i data-lucide="play" class="w-6 h-6 fill-white" id="main-play-icon"></i>
-          </button>
-          <button onclick="playNextTrack()" title="Next Song" id="next-btn" class="p-2 text-gray-400 hover:text-rosewood transition disabled:opacity-30">
-            <i data-lucide="skip-forward" class="w-5 h-5"></i>
-          </button>
-        </div>
-
-        <div class="flex items-center gap-2 w-full max-w-[200px] pt-1">
-          <i data-lucide="volume-2" class="w-3.5 h-3.5 text-gray-400"></i>
-          <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.7" oninput="handleVolumeChange(this.value)" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blush-400" />
-        </div>
-      </div>
-
-      <div id="queue-view-container" class="space-y-3 hidden">
-        <span class="text-xs font-bold uppercase tracking-wider text-rosewood">Songs in Playlist</span>
-        <div id="queue-list" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
-      </div>
-    </div>
-  </div>
-
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.14/dist/lenis.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
 </body>
 </html>

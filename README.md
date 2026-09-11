@@ -1,60 +1,50 @@
-# ✦ MY LOVE — A Forever Sanctuary ✦
+# SANCTUARY — a cinematic film for two
 
-An aesthetic, cloud-synced digital sanctuary and interactive memory keepsake. Built with a strict architectural separation between a read-only visitor sanctuary for your partner and an administrative command center for managing cloud media and database records via Supabase.
+A scroll-driven, cinematic love-letter website. The page reads like a film: scenes, chapters, a soundtrack — not a landing page. Every picture and every quote from the original site is preserved, only the presentation changed.
 
----
+## The Experience
 
-## ✨ Core Features
+The site is structured as scenes connected by scroll:
 
-### 🌸 Visitor Interface (`index.html`)
-- **🔒 Frosted Glass Security Gate:** Protected by a SHA-256 hashed passcode lockscreen with an animated skeleton wireframe backdrop to prevent peeking before unlock.
-- **📸 Dynamic "Favorite View" Stack:**
-  - Dynamic polaroid card with a live anniversary counter, badges, and custom romantic notes.
-  - **Adaptive Stack Engine:** Automatically renders as a clean single card when only one view exists; expands into an interactive cycling deck with navigation controls and pagination counters when multiple views are stored.
-- **🫂 "For When You Feel Low" Uplifting Hub:**
-  - **Instant Warm Hug:** A breathing circle animation with ambient pulse glow and comforting reminders.
-  - **Wholesome Reminder Deck:** Interactive card deck cycling through wholesome affirmations.
-- **🏡 Shared Dream Board:** Cloud-synced visual board for future goals, milestones, and shared visions.
-- **🎞️ Cloud Memory Box:** Keepsake gallery displaying tagged polaroids, dates, and love quotes loaded dynamically from PostgreSQL.
-- **🎶 Cozy Music Hub:**
-  - **Ambient Lofi Chimes:** Procedural, relaxing chime generator powered by Web Audio API synthesizers.
-  - **Dynamic Audio Streamer:** Streams uploaded `.mp3` tracks directly from Supabase Storage CDN with live progress seeking, time displays, and volume adjustment.
-- **💖 Interactive Particle Canvas:** Tap-activated confetti bursts and a custom 2D canvas spawning physics-based floating hearts.
+1. **Gate** — a cinematic login screen ("A private screening"). Same passcode as before (SHA-256, session-based unlock).
+2. **Scene 01 · The Beginning** — full-screen cover photo with the title "To my entire universe & soulmate". Scrolling *zooms the camera into the photo* (pinned GSAP scrub), and the favorite-view quote fades in mid-zoom. Multiple favorite views auto-crossfade with ←/→ controls.
+3. **Scene 02 · Why You** — the big paragraph, revealed word-by-word as you scroll (scrub-linked opacity/motion).
+4. **Scene 03 · The Memory Box** — a **pinned horizontal reel**: vertical scrolling drives the memory film-strip sideways. Tilted photo frames straighten on hover.
+5. **Scene 04 · For the Low Days** — the affirmation deck, now scrub-cycled: scrolling turns the cards while the card stays pinned. The hug overlay (breathing circle) is still one button away.
+6. **Scene 05 · What We're Building** — dreams as large editorial rows with parallax images.
+7. **Scene 06 · The Soundtrack** — full inline music player (your MP3s from Supabase Storage), spinning vinyl disc, seek bar, playlist with active-track highlight.
+8. **Final Scene · Forever** — the closing letter with floating memory photos drifting at different scroll speeds (parallax collage).
 
----
+Plus: film grain + vignette overlay, a fixed "film chrome" bar showing the current scene name, scroll progress line, tap-anywhere floating hearts.
 
-### 🛠️ Command Center (`admin.html`)
-- **🛡️ Passcode-Protected Admin Gate:** Restricts database modification tools behind a dedicated master passcode.
-- **⚡ 1-Click Database Synchronization:** An automated migration engine that scans browser storage and seeds default content into Supabase tables without creating duplicates.
-- **📝 Full CRUD Records Management:**
-  - **Create:** Upload memories, dreams, playlist tracks, and hero polaroids.
-  - **Modify:** Edit existing records in real time using dedicated modals.
-  - **Comparative Previews:** Shows side-by-side previews of the currently stored image versus the newly selected file before committing changes.
-  - **Delete:** Remove outdated records directly from the database with confirmation guards.
-- **☁️ Direct Bucket Uploads:** Automatically routes images to the `photos` bucket and audio tracks to the `music` bucket.
-- **📟 Live Terminal Logger:** Displays real-time status output for storage uploads, API requests, and database updates.
+## Tech
 
----
+- **GSAP + ScrollTrigger** — pinned scenes, scrubbed animations, horizontal scroll section, parallax
+- **Lenis** — smooth inertial scrolling
+- **Vanilla JS + CSS** — no frameworks, no Tailwind, no icon CDNs (site *and* admin)
+- **Supabase** — same tables as before: `favorite_views`, `memories`, `dreams`, `songs`; storage buckets `photos` / `music`
+- All content has local fallbacks, so the site works even if Supabase is unreachable
 
-## 🛠️ Built With
+## Editing your site (no more typing /admin.html)
 
-- **Frontend:** Vanilla JavaScript (ES6+), HTML5, CSS3 (Glassmorphism & Custom Keyframe Animations)
-- **Styling:** [Tailwind CSS CDN](https://tailwindcss.com/)
-- **Backend & Database:** [Supabase](https://supabase.com/) (PostgreSQL with Row-Level Security)
-- **Object Storage:** Supabase Storage Buckets (`photos`, `music`)
-- **Audio & Visual FX:** Web Audio API, [Lucide Icons](https://lucide.dev/), [Canvas Confetti](https://www.npmjs.com/package/canvas-confetti)
-- **Deployment:** [Vercel](https://vercel.com/) (Continuous deployment via Git)
+- **Footer ✎** — bottom-right of the finale, a discreet ✎ links to the admin
+- **Triple-click "SANCTUARY"** in the top chrome bar
+- Admin unlocks automatically if you've already passed the site passcode this session — same password, typed once
+- "Lock Session" now returns you to the film (and clears the session)
 
----
-
-## 📂 Project Structure
+## Structure
 
 ```text
-├── index.html         # Visitor frontend with frosted lockscreen
-├── admin.html         # Admin control center (CRUD, uploads & migration)
-├── style.css          # Custom animations, glassmorphic filters & scroll locks
-├── script.js          # Client-side logic, audio synthesizer & particle canvas
-├── cover.jpg          # Fallback hero polaroid
-├── babieee.jpg        # Fallback dream board image
-├── memory1.jpg        # Fallback memory keepsake image
-└── README.md          # Project documentation
+├── index.html         # the film (scenes + gate)
+├── style.css          # bespoke cinematic theme (no Tailwind)
+├── script.js          # gate, Lenis, GSAP story, Supabase loaders, player
+├── admin.html         # control room (CRUD, uploads, sync) — same design system
+├── cover.jpg / memory1-3.jpg / babieee.jpg / dream2.jpg   # media
+└── *.mp3              # soundtrack fallbacks
+```
+
+## Notes
+
+- Passcode check is client-side SHA-256 — fine for a personal surprise, not real security
+- Animations respect `prefers-reduced-motion`
+- Deploy anywhere static (it was set up for Vercel before — still works)
