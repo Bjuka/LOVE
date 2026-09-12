@@ -618,13 +618,23 @@ body:not(.locked) main { visibility: visible; }
 .mem-caption { color: var(--ink-dim); font-size: 0.88rem; line-height: 1.65; max-width: 44ch; }
 
 /* ============================================================
-   SCENE 04 · NOTES — scrub-cycled affirmation deck
+   SCENE 04 · NOTES — click-driven affirmation deck
    ============================================================ */
 .scene-notes {
-  min-height: 250vh;
-  padding: 12vh clamp(1.5rem, 6vw, 6rem);
+  min-height: 100vh;
+  padding: 12vh clamp(1.5rem, 6vw, 6rem) 8vh;
 }
-.notes-head { max-width: 760px; margin: 0 auto 8vh; }
+.notes-tip {
+  max-width: 760px;
+  margin: 0 auto 2.2rem;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.notes-head { max-width: 760px; margin: 0 auto 6vh; }
 .notes-title {
   font-family: var(--serif);
   font-size: clamp(2rem, 5vw, 3.6rem);
@@ -633,7 +643,9 @@ body:not(.locked) main { visibility: visible; }
 }
 .notes-sub { margin-top: 1rem; color: var(--ink-dim); max-width: 46ch; }
 
-.note-stage { position: sticky; top: 18vh; height: 56vh; display: grid; place-items: center; }
+/* content-driven height, no pinning: scrolling flows straight through —
+   the gap is gone and quotes only change on click */
+.note-stage { position: relative; height: auto; display: grid; place-items: center; padding: 4vh 0; }
 .note-card {
   width: min(620px, 88vw);
   min-height: 320px;
@@ -644,6 +656,8 @@ body:not(.locked) main { visibility: visible; }
   display: flex; flex-direction: column;
   box-shadow: 0 36px 80px rgba(246, 93, 142, 0.2), 0 8px 22px rgba(246, 93, 142, 0.1);
   will-change: transform, opacity;
+  cursor: pointer;             /* the card itself is a quote control */
+  -webkit-tap-highlight-color: transparent;
 }
 .note-index {
   font-family: var(--mono);
@@ -661,7 +675,29 @@ body:not(.locked) main { visibility: visible; }
 }
 .note-sign { margin-top: 1.8rem; font-family: var(--script); font-style: normal; font-size: 1.25rem; color: var(--rose-deep); }
 
-.notes-actions { display: flex; justify-content: center; margin-top: 10vh; }
+.notes-actions { display: flex; justify-content: center; margin-top: 3vh; }
+
+/* quote pager — click to change the quote (and the polaroid with it) */
+.note-pager {
+  display: flex; align-items: center; justify-content: center; gap: 1.1rem;
+  margin-top: 1.6rem;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.3em;
+  color: var(--ink-dim);
+}
+.note-pager button {
+  background: var(--card);
+  border: 1px solid var(--line-soft);
+  color: var(--ink);
+  width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 14px rgba(246, 93, 142, 0.14);
+  transition: border-color 0.3s, color 0.3s, transform 0.2s;
+}
+.note-pager button:hover { border-color: var(--rose); color: var(--rose); }
+.note-pager button:active { transform: scale(0.92); }
 
 .ghost-btn {
   background: var(--card);
@@ -1161,6 +1197,7 @@ body:not(.locked) main { visibility: visible; }
 .polaroid-slide {
   flex: 0 0 100%;
   min-width: 100%;
+  transition: transform 0.7s var(--ease);   /* non-GSAP fallback slide */
 }
 
 .polaroid-slide img {

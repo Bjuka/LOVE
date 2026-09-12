@@ -10,7 +10,7 @@ The site is structured as scenes connected by scroll:
 2. **Scene 01 · The Beginning** — full-screen cover photo with the title "To my entire universe & soulmate". Scrolling *zooms the camera into the photo* (pinned GSAP scrub), and the favorite-view quote fades in mid-zoom. Multiple favorite views auto-crossfade with ←/→ controls.
 3. **Scene 02 · Why You** — the big paragraph, revealed word-by-word as you scroll (scrub-linked opacity/motion).
 4. **Scene 03 · The Memory Box** — a **pinned horizontal reel**: vertical scrolling drives the memory film-strip sideways. Tilted photo frames straighten on hover.
-5. **Scene 04 · For the Low Days** — the affirmation deck, now scrub-cycled: scrolling turns the cards while the card stays pinned. The hug overlay (breathing circle) is still one button away.
+5. **Scene 04 · For the Low Days** — the affirmation deck is now click-driven: tap the card or use ←/→ to change quotes (scrolling never changes them) and the polaroid photo changes with each quote. The hug overlay (breathing circle) is still one button away.
 6. **Scene 05 · What We're Building** — dreams as large editorial rows with parallax images.
 7. **Scene 06 · The Soundtrack** — full inline music player (your MP3s from Supabase Storage), spinning vinyl disc, seek bar, playlist with active-track highlight.
 8. **Final Scene · Forever** — the closing letter with floating memory photos drifting at different scroll speeds (parallax collage).

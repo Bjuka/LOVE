@@ -351,11 +351,9 @@ function renderDreams(dreams) {
 }
 
 // ---------- scene 4 polaroid companion ----------
-// Each photo stays pinned beside the affirmation deck for TWO quotes:
-// it "opens" (unfolds) on the first, slowly zooms while you read,
-// then carousels to the next photo as you scroll into the next pair.
-// 12 quotes ÷ 6 photos = 2 quotes per photo — and it auto-adapts if you
-// add more quotes or photos (ceil division, clamped to photo count).
+// Quotes are CLICK-driven (arrows / tapping the card) — scrolling never
+// changes them. The polaroid photo simply changes whenever the quote does:
+// one photo per quote, cycling through the reel.
 var notePolaroids = [
   { src: "assets/img/biryani.jpg", tilt: -4 },
   { src: "assets/img/red-hat.jpg", tilt: 3 },
@@ -378,9 +376,25 @@ function buildPolaroidReel() {
   polaroidReelBuilt = true;
 }
 
-// warm the image cache so carousel swaps never flash empty
+// warm the image cache so photo swaps never flash empty
 function preloadNotePolaroids() {
   notePolaroids.forEach(function (p) { var im = new Image(); im.src = p.src; });
+}
+
+// polaroid photo changes whenever the quote changes (one photo per quote, cycling)
+function swapNotePolaroid(quoteIdx) {
+  var reel = document.getElementById("polaroid-reel");
+  if (!reel || !notePolaroids.length) return;
+  var idx = ((quoteIdx % notePolaroids.length) + notePolaroids.length) % notePolaroids.length;
+  var slides = reel.querySelectorAll(".polaroid-slide");
+  if (!slides.length) return;
+  slides.forEach(function (s, i) { s.classList.toggle("is-current", i === idx); });
+  var offset = -100 * idx; // one full frame per slide
+  if (HAS_GSAP && !REDUCED) {
+    gsap.to(reel, { xPercent: offset, duration: 0.7, ease: "power3.inOut" });
+  } else {
+    reel.style.transform = "translateX(" + offset + "%)";
+  }
 }
 
 // ---------- songs ----------
@@ -518,12 +532,14 @@ var noteAnimating = false;
 function showNote(i, animate) {
   var card = document.getElementById("note-card");
   var textEl = document.getElementById("note-text");
+  var prev = noteIndex;
   noteIndex = ((i % wholesomeAffirmations.length) + wholesomeAffirmations.length) % wholesomeAffirmations.length;
 
   function apply() {
     textEl.textContent = "“" + wholesomeAffirmations[noteIndex] + "”";
     document.getElementById("note-count").textContent =
       pad2(noteIndex + 1) + " / " + pad2(wholesomeAffirmations.length);
+    if (noteIndex !== prev) swapNotePolaroid(noteIndex); // photo changes WITH the quote
   }
 
   if (HAS_GSAP && animate && !REDUCED && !noteAnimating) {
@@ -541,6 +557,18 @@ function showNote(i, animate) {
 function initNotes() {
   showNote(0, false);
 
+  // click-to-advance quotes: arrows + clicking the card itself (nothing changes on scroll)
+  var prevBtn = document.getElementById("note-prev");
+  var nextBtn = document.getElementById("note-next");
+  if (prevBtn) prevBtn.addEventListener("click", function () { showNote(noteIndex - 1, true); });
+  if (nextBtn) nextBtn.addEventListener("click", function () { showNote(noteIndex + 1, true); });
+  var cardEl = document.getElementById("note-card");
+  if (cardEl) cardEl.addEventListener("click", function (e) {
+    if (e.target.closest("button")) return;
+    var r = cardEl.getBoundingClientRect();
+    showNote(e.clientX < r.left + r.width / 2 ? noteIndex - 1 : noteIndex + 1, true);
+  });
+
   document.getElementById("hug-open").addEventListener("click", function () {
     document.getElementById("hug-overlay").classList.add("open");
     spawnHeartBurst(window.innerWidth / 2, window.innerHeight * 0.5, 18);
@@ -550,8 +578,18 @@ function initNotes() {
     closeHug();
     spawnHeartBurst(window.innerWidth / 2, window.innerHeight / 2, 30);
   });
+  // ←/→ keys change the quote too — but only while the notes scene is on screen
+  var notesVisible = !("IntersectionObserver" in window);
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function (entries) {
+      notesVisible = entries[0].isIntersecting;
+    }, { threshold: 0.2 }).observe(document.getElementById("notes"));
+  }
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") closeHug();
+    if (e.key === "Escape") { closeHug(); return; }
+    if (!notesVisible || document.getElementById("hug-overlay").classList.contains("open")) return;
+    if (e.key === "ArrowRight") showNote(noteIndex + 1, true);
+    else if (e.key === "ArrowLeft") showNote(noteIndex - 1, true);
   });
 }
 
@@ -601,57 +639,24 @@ function buildScrollStory() {
     }
   });
 
-  // ----- notes: scrub-cycled affirmation deck -----
-  ScrollTrigger.create({
-    trigger: "#notes", start: "top 25%", end: "bottom 65%", scrub: true,
-    onUpdate: function (self) {
-      var target = Math.min(Math.floor(self.progress * wholesomeAffirmations.length), wholesomeAffirmations.length - 1);
-      if (target !== noteIndex) showNote(target, true);
-    }
-  });
-
-  // ----- notes polaroid companion: open → zoom → carousel with the quotes -----
+  // ----- notes: reveal polaroid on arrival (quotes are click-driven, never scroll-driven) -----
   var polaroid = document.getElementById("note-polaroid");
   if (polaroid) {
-    var QUOTES_PER_PHOTO = Math.max(1, Math.ceil(wholesomeAffirmations.length / notePolaroids.length));
-    var photoCount = Math.min(notePolaroids.length, Math.ceil(wholesomeAffirmations.length / QUOTES_PER_PHOTO));
-    var photoIndex = 0;
-
-    // open: unfold + straighten on arrival, then a slow endless zoom while pinned
-    var polaroidTl = gsap.timeline({
-      scrollTrigger: {
-        trigger: "#notes", start: "top 60%", end: "bottom 55%",
-        scrub: 1, invalidateOnRefresh: true
-      }
-    });
-    polaroidTl.fromTo(polaroid,
+    // open: unfold + straighten when the section arrives
+    gsap.fromTo(polaroid,
       { opacity: 0, rotate: -14, scale: 0.7, y: 40 },
-      { opacity: 1, rotate: -4, scale: 1, y: 0, duration: 0.5, ease: "back.out(1.7)" }
-    ).to(polaroid, { scale: 1.28, duration: 4.5, ease: "none" }); // slow cinematic zoom across all quotes
-
-    // carousel: swap the photo every QUOTES_PER_PHOTO quotes, synced to the same scroll span
-    var slideStep = 1 / photoCount;
-    gsap.to("#polaroid-reel", {
-      xPercent: -100 * (photoCount - 1),   // each slide is 100% of reel width → shift one full frame per swap
-      ease: "none",
-      scrollTrigger: {
-        trigger: "#notes", start: "top 45%", end: "bottom 70%",
-        scrub: 0.8, invalidateOnRefresh: true,
-        onUpdate: function (self) {
-          // discrete current-slide bookkeeping (used by CSS tilt per slide)
-          var next = Math.min(photoCount - 1, Math.floor(self.progress / slideStep));
-          if (next !== photoIndex) {
-            photoIndex = next;
-            var slides = document.querySelectorAll(".polaroid-slide");
-            slides.forEach(function (s, i) { s.classList.toggle("is-current", i === photoIndex); });
-          }
-        }
+      {
+        opacity: 1, rotate: -4, scale: 1, y: 0, duration: 0.9, ease: "back.out(1.7)",
+        scrollTrigger: { trigger: "#notes", start: "top 60%" }
       }
-    });
-
-    // per-slide tilt (matches its polaroid's personality) — safe: only touches the slide, not the shared reel
-    gsap.utils.toArray(".polaroid-slide").forEach(function (slide, i) {
-      gsap.set(slide, { rotation: notePolaroids[i] ? notePolaroids[i].tilt : 0 });
+    );
+    // soften away once you leave the section (both directions)
+    ScrollTrigger.create({
+      trigger: "#notes", start: "top 45%", end: "bottom 70%",
+      onLeave: function () { gsap.to(polaroid, { opacity: 0, scale: 0.85, duration: 0.4 }); },
+      onLeaveBack: function () { gsap.to(polaroid, { opacity: 0, scale: 0.85, duration: 0.4 }); },
+      onEnter: function () { gsap.to(polaroid, { opacity: 1, scale: 1, duration: 0.5 }); },
+      onEnterBack: function () { gsap.to(polaroid, { opacity: 1, scale: 1, duration: 0.5 }); }
     });
   }
 
