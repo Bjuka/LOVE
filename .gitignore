@@ -1,14 +1,21 @@
-# Operating System files
+# SANCTUARY · secure edition — secrets & generated files
+.env
+env.js
+codebuff.json
+*.pem
+*.key
+
+# OS noise
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Editor / IDE configuration folders
+# Editor / IDE
 .vscode/
 .zed/
 .idea/
 
-# Local backup / temporary files
+# Temp / backups
 *.tmp
 *.bak
 *~
