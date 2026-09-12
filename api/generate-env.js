@@ -26,7 +26,7 @@ const REQUIRED = ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SANCTUARY_PASSWORD_HASH"
 const missing = REQUIRED.filter((k) => !process.env[k]);
 if (missing.length) {
   console.error("✗ Missing required env vars: " + missing.join(", "));
-  console.error("  Copy secure/.env.example to secure/.env, fill it in, then re-run this script.");
+  console.error("  Copy .env.example to .env, fill it in, then re-run this script.");
   process.exit(1);
 }
 
