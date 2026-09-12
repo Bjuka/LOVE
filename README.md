@@ -38,9 +38,19 @@ Plus: film grain + vignette overlay, a fixed "film chrome" bar showing the curre
 ├── index.html         # the film (scenes + gate)
 ├── style.css          # bespoke cinematic theme (no Tailwind)
 ├── script.js          # gate, Lenis, GSAP story, Supabase loaders, player
+├── media.js           # media path resolver (legacy names → assets/)
+├── whimsy.js          # heart trail, petal rain, aurora, polaroid corners
 ├── admin.html         # control room (CRUD, uploads, sync) — same design system
-├── cover.jpg / memory1-3.jpg / babieee.jpg / dream2.jpg   # media
-└── *.mp3              # soundtrack fallbacks
+├── admin.js           # hardened admin logic
+├── config.js / env.js # runtime config (env.js is gitignored — never commit it)
+├── assets/
+│   ├── img/           # all photos (cover, memories, dreams, polaroids)
+│   └── audio/         # soundtrack fallbacks (slugged filenames)
+├── api/               # generate-env · check-secrets · optional edge config
+├── vendor/            # local GSAP, ScrollTrigger, Lenis, Supabase (no CDN)
+├── supabase-policies.sql  # RLS pack — run in the Supabase SQL Editor
+├── vercel.json        # security headers + media caching
+└── SECURITY.md        # security guide & checklist
 ```
 
 ## Notes

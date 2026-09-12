@@ -4,12 +4,20 @@
    ============================================================ */
 
 // ==================== CONFIG ====================
-var SUPABASE_URL = "https://idlhbjoxxskzmvzrhjpb.supabase.co";
-var SUPABASE_ANON_KEY = "sb_publishable_0NiaQQkwoIcttLrvBEzAqg_t5vaBgAY";
-var SANCTUARY_PASSWORD_HASH = "7ad938a2c26edc6be22bcb1c2b17e1140c40257e2e2ec052db5bcee7f66aba08";
+// Keys no longer live in code. config.js + env.js (gitignored, generated)
+// supply them at runtime; see secure/env.example.js.
+var cfg = window.SANCTUARY_CFG || { supabaseUrl: "", supabaseAnonKey: "", passwordHash: "", debug: false };
+var SUPABASE_URL = cfg.supabaseUrl;
+var SUPABASE_ANON_KEY = cfg.supabaseAnonKey;
+var SANCTUARY_PASSWORD_HASH = cfg.passwordHash;
+var DEBUG = !!cfg.debug;
+function debugLog() { if (DEBUG && window.console && console.log.apply) console.log.apply(console, ["[SANCTUARY]"].concat([].slice.call(arguments))); }
 
-var supabaseClient = window.supabase
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+var supabaseClient = (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { "X-Client-Info": "sanctuary-secure" } }
+    })
   : null;
 
 var REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -50,8 +58,11 @@ async function sha256(message) {
 }
 
 // ==================== CONTENT (fallbacks mirror DB) ====================
+// media path resolver (media.js) — maps legacy bare filenames to assets/
+var media = (window.SANCTUARY_MEDIA && window.SANCTUARY_MEDIA.resolve) || function (u) { return u; };
+
 var defaultHeroFallback = {
-  image_url: "cover.jpg",
+  image_url: "assets/img/cover.jpg",
   badge: "My Favorite View",
   date: "Today",
   sub_tag: "",
@@ -60,25 +71,25 @@ var defaultHeroFallback = {
 };
 
 var fallbackMemories = [
-  { title: "What makes me happy?", date: "2026-03-13", tag: "MINEEE 💍", image: "memory1.jpg",
+  { title: "What makes me happy?", date: "2026-03-13", tag: "MINEEE 💍", image: "assets/img/memory1.jpg",
     caption: "Every moment with you makes me feel special beacause you feel like a long lost part of me which makes me complete 💕💕" },
-  { title: "My Cute Babieeee", date: "2025-12-12", tag: "Special dayyy 🍷", image: "memory2.jpg",
+  { title: "My Cute Babieeee", date: "2025-12-12", tag: "Special dayyy 🍷", image: "assets/img/memory2.jpg",
     caption: "Whenever im with you, im never alone. you make me feel so happy like im some celebrity but tbh, i just want to be YOURS ❤️" },
-  { title: "Ummmmmah", date: "2026-08-14", tag: "Goofy Moments 🤪", image: "memory3.jpg",
+  { title: "Ummmmmah", date: "2026-08-14", tag: "Goofy Moments 🤪", image: "assets/img/memory3.jpg",
     caption: "You brings out the kid in me (idk the date😭)" }
 ];
 
 var fallbackDreams = [
   { title: "My Second Love", emoji: "❤️", tag: "Our little cuteness",
-    desc: "Our daughter will look like this and we will be the best parents anyone can ever wish for ❤️❤️", image: "babieee.jpg" },
+    desc: "Our daughter will look like this and we will be the best parents anyone can ever wish for ❤️❤️", image: "assets/img/babieee.jpg" },
   { title: "Together and Forever", emoji: "🌻🌻", tag: "Our Goal",
-    desc: "No matter what happens, we stay together, we fight together and we fix together cuz you're my wifey and i love you the most. just like this💕", image: "dream2.jpg" }
+    desc: "No matter what happens, we stay together, we fight together and we fix together cuz you're my wifey and i love you the most. just like this💕", image: "assets/img/dream2.jpg" }
 ];
 
 var fallbackSongs = [
-  { title: "Accidently in LOVE", artist: "Counting Crows", src: "Accidently in Love.mp3" },
-  { title: "Make you MINE", artist: "PUBLIC", src: "Make you MINE.mp3" },
-  { title: "You & I", artist: "One Direection", src: "You & I.mp3" }
+  { title: "Accidently in LOVE", artist: "Counting Crows", src: "assets/audio/accidently-in-love.mp3" },
+  { title: "Make you MINE", artist: "PUBLIC", src: "assets/audio/make-you-mine.mp3" },
+  { title: "You & I", artist: "One Direection", src: "assets/audio/you-and-i.mp3" }
 ];
 
 var wholesomeAffirmations = [
@@ -108,11 +119,25 @@ function unlockSite() {
   startExperience();
 }
 
+// --- gate brute-force throttle (client-side; real enforcement lives in Supabase RLS + any edge rate limit) ---
+var gateAttempts = 0, gateLockUntil = 0;
+function gateThrottled() {
+  var now = Date.now();
+  if (now < gateLockUntil) return true;
+  if (gateAttempts >= 5) { gateLockUntil = now + 30000; gateAttempts = 0; return true; }
+  return false;
+}
+
 async function handleGateSubmit(e) {
   e.preventDefault();
-  var val = gateInput.value;
+  if (gateThrottled()) {
+    gateError.textContent = "too many attempts — take a breath, 30s pause 🌸";
+    gateError.classList.add("show");
+    return;
+  }
+  var val = gateInput.value.slice(0, 128); // input length cap (sanitize user input)
   var hash = await sha256(val);
-  if (hash === SANCTUARY_PASSWORD_HASH || val.trim() === SANCTUARY_PASSWORD_HASH) {
+  if (hash === SANCTUARY_PASSWORD_HASH) {  // hash-only comparison — the old "paste-the-hash" bypass is removed
     gateError.classList.remove("show");
     if (HAS_GSAP && !REDUCED) {
       var tl = gsap.timeline({ onComplete: function () {
@@ -127,6 +152,7 @@ async function handleGateSubmit(e) {
       setTimeout(function () { gateEl.style.display = "none"; unlockSite(); }, 900);
     }
   } else {
+    gateAttempts++;
     gateError.classList.add("show");
     gateError.classList.remove("shake");
     void gateError.offsetWidth;
@@ -175,12 +201,7 @@ var currentViewIndex = 0;
 var viewAutoTimer = null;
 
 async function loadFavoriteViews() {
-  if (supabaseClient) {
-    try {
-      var res = await supabaseClient.from("favorite_views").select("*").order("created_at", { ascending: true });
-      if (!res.error && res.data && res.data.length > 0) favoriteViews = res.data;
-    } catch (err) { console.warn("favorite_views fallback:", err); }
-  }
+  favoriteViews = await fetchTable("favorite_views", "created_at", true, function (v) { return v; }, favoriteViews);
   if (!favoriteViews.length) favoriteViews = [defaultHeroFallback];
   renderHeroStack();
 }
@@ -190,7 +211,7 @@ function renderHeroStack() {
   if (!stack) return;
   stack.innerHTML = favoriteViews.map(function (v, i) {
     return '<div class="hero-layer' + (i === 0 ? " is-active" : "") + '">' +
-      '<img src="' + escapeHtml(v.image_url || defaultHeroFallback.image_url) + '" alt="" /></div>';
+      '<img src="' + escapeHtml(media(v.image_url || defaultHeroFallback.image_url)) + '" alt="" /></div>';
   }).join("");
 
   var quoteEl = document.querySelector(".hero-quote");
@@ -258,20 +279,25 @@ function startAutoAdvance() {
   viewAutoTimer = setInterval(function () { switchView(currentViewIndex + 1); }, 8000);
 }
 
-// ---------- memories ----------
-async function loadMemories() {
-  var memories = fallbackMemories;
+// ---------- shared data loader (one fetch-fallback-map pattern, four tables) ----------
+async function fetchTable(table, orderCol, ascending, mapRow, fallback) {
   if (supabaseClient) {
     try {
-      var res = await supabaseClient.from("memories").select("*").order("date", { ascending: false });
+      var res = await supabaseClient.from(table).select("*").order(orderCol, { ascending: ascending });
       if (!res.error && res.data && res.data.length > 0) {
-        memories = res.data.map(function (m) {
-          return { title: m.title, date: m.date, tag: m.tag || "Memory",
-                   image: m.image_url || "memory1.jpg", caption: m.caption || m.title };
-        });
+        return res.data.map(mapRow);
       }
-    } catch (err) { console.warn("memories fallback:", err); }
+    } catch (err) { console.warn(table + " fallback:", err); }
   }
+  return fallback;
+}
+
+// ---------- memories ----------
+async function loadMemories() {
+  var memories = await fetchTable("memories", "date", false, function (m) {
+    return { title: m.title, date: m.date, tag: m.tag || "Memory",
+             image: m.image_url || "assets/img/memory1.jpg", caption: m.caption || m.title };
+  }, fallbackMemories);
   renderMemories(memories);
 }
 
@@ -284,7 +310,7 @@ function renderMemories(memories) {
     return '<div class="mem-panel">' +
       '<div class="mem-card">' +
         '<div class="mem-frame" style="--tilt:' + tilt + 'deg">' +
-          '<img src="' + escapeHtml(m.image) + '" alt="' + escapeHtml(m.title) + '" loading="lazy" />' +
+          '<img src="' + escapeHtml(media(m.image)) + '" alt="' + escapeHtml(m.title) + '" loading="lazy" />' +
           '<span class="mem-tag">' + escapeHtml(m.tag || "Memory") + "</span>" +
         "</div>" +
         '<div class="mem-meta">' +
@@ -300,18 +326,10 @@ function renderMemories(memories) {
 
 // ---------- dreams ----------
 async function loadDreams() {
-  var dreams = fallbackDreams;
-  if (supabaseClient) {
-    try {
-      var res = await supabaseClient.from("dreams").select("*").order("created_at", { ascending: false });
-      if (!res.error && res.data && res.data.length > 0) {
-        dreams = res.data.map(function (d) {
-          return { title: d.title, emoji: d.emoji || "✨", tag: d.tag || "Dream",
-                   desc: d.description || "", image: d.image_url || "babieee.jpg" };
-        });
-      }
-    } catch (err) { console.warn("dreams fallback:", err); }
-  }
+  var dreams = await fetchTable("dreams", "created_at", false, function (d) {
+    return { title: d.title, emoji: d.emoji || "✨", tag: d.tag || "Dream",
+             desc: d.description || "", image: d.image_url || "assets/img/babieee.jpg" };
+  }, fallbackDreams);
   renderDreams(dreams);
 }
 
@@ -321,7 +339,7 @@ function renderDreams(dreams) {
   list.innerHTML = dreams.map(function (d, i) {
     return '<div class="dream-row" data-dream="' + i + '">' +
       '<div class="dream-media"><span class="dream-emoji">' + escapeHtml(d.emoji) + "</span>" +
-        '<img src="' + escapeHtml(d.image) + '" alt="' + escapeHtml(d.title) + '" loading="lazy" /></div>' +
+        '<img src="' + escapeHtml(media(d.image)) + '" alt="' + escapeHtml(d.title) + '" loading="lazy" /></div>' +
       '<div class="dream-text">' +
         '<p class="dream-tag">' + escapeHtml(d.tag) + "</p>" +
         '<h3 class="dream-title">' + escapeHtml(d.title) + "</h3>" +
@@ -330,6 +348,39 @@ function renderDreams(dreams) {
       "</div></div>";
   }).join("");
   refreshTriggers();
+}
+
+// ---------- scene 4 polaroid companion ----------
+// Each photo stays pinned beside the affirmation deck for TWO quotes:
+// it "opens" (unfolds) on the first, slowly zooms while you read,
+// then carousels to the next photo as you scroll into the next pair.
+// 12 quotes ÷ 6 photos = 2 quotes per photo — and it auto-adapts if you
+// add more quotes or photos (ceil division, clamped to photo count).
+var notePolaroids = [
+  { src: "assets/img/biryani.jpg", tilt: -4 },
+  { src: "assets/img/red-hat.jpg", tilt: 3 },
+  { src: "assets/img/cute-stuff.jpg", tilt: -3 },
+  { src: "assets/img/park.jpg", tilt: 4 },
+  { src: "assets/img/noice.jpg", tilt: -5 },
+  { src: "assets/img/yellow-hat.jpg", tilt: 2 }
+];
+
+var polaroidReelBuilt = false;
+
+function buildPolaroidReel() {
+  var reel = document.getElementById("polaroid-reel");
+  if (!reel || polaroidReelBuilt) return;
+  reel.innerHTML = notePolaroids.map(function (p, i) {
+    return '<div class="polaroid-slide' + (i === 0 ? " is-current" : "") + '">' +
+      '<img src="' + escapeHtml(media(p.src)) + '" alt="" />' +
+      "</div>";
+  }).join("");
+  polaroidReelBuilt = true;
+}
+
+// warm the image cache so carousel swaps never flash empty
+function preloadNotePolaroids() {
+  notePolaroids.forEach(function (p) { var im = new Image(); im.src = p.src; });
 }
 
 // ---------- songs ----------
@@ -359,15 +410,9 @@ function initPlayer() {
 }
 
 async function loadSongs() {
-  var songs = fallbackSongs;
-  if (supabaseClient) {
-    try {
-      var res = await supabaseClient.from("songs").select("*").order("created_at", { ascending: true });
-      if (!res.error && res.data && res.data.length > 0) {
-        songs = res.data.map(function (s) { return { title: s.title, artist: s.artist, src: s.url }; });
-      }
-    } catch (err) { console.warn("songs fallback:", err); }
-  }
+  var songs = await fetchTable("songs", "created_at", true, function (s) {
+    return { title: s.title, artist: s.artist, src: s.url };
+  }, fallbackSongs);
   player.queue = songs;
   renderPlaylist();
   updateNowPlaying();
@@ -397,7 +442,7 @@ function playTrack(i) {
   if (!player.queue[i]) return;
   player.index = i;
   var s = player.queue[i];
-  player.audio.src = s.src;
+  player.audio.src = media(s.src);
   player.audio.play().then(function () {
     player.playing = true;
     syncPlayUI();
@@ -565,6 +610,51 @@ function buildScrollStory() {
     }
   });
 
+  // ----- notes polaroid companion: open → zoom → carousel with the quotes -----
+  var polaroid = document.getElementById("note-polaroid");
+  if (polaroid) {
+    var QUOTES_PER_PHOTO = Math.max(1, Math.ceil(wholesomeAffirmations.length / notePolaroids.length));
+    var photoCount = Math.min(notePolaroids.length, Math.ceil(wholesomeAffirmations.length / QUOTES_PER_PHOTO));
+    var photoIndex = 0;
+
+    // open: unfold + straighten on arrival, then a slow endless zoom while pinned
+    var polaroidTl = gsap.timeline({
+      scrollTrigger: {
+        trigger: "#notes", start: "top 60%", end: "bottom 55%",
+        scrub: 1, invalidateOnRefresh: true
+      }
+    });
+    polaroidTl.fromTo(polaroid,
+      { opacity: 0, rotate: -14, scale: 0.7, y: 40 },
+      { opacity: 1, rotate: -4, scale: 1, y: 0, duration: 0.5, ease: "back.out(1.7)" }
+    ).to(polaroid, { scale: 1.28, duration: 4.5, ease: "none" }); // slow cinematic zoom across all quotes
+
+    // carousel: swap the photo every QUOTES_PER_PHOTO quotes, synced to the same scroll span
+    var slideStep = 1 / photoCount;
+    gsap.to("#polaroid-reel", {
+      xPercent: -100 * (photoCount - 1),   // each slide is 100% of reel width → shift one full frame per swap
+      ease: "none",
+      scrollTrigger: {
+        trigger: "#notes", start: "top 45%", end: "bottom 70%",
+        scrub: 0.8, invalidateOnRefresh: true,
+        onUpdate: function (self) {
+          // discrete current-slide bookkeeping (used by CSS tilt per slide)
+          var next = Math.min(photoCount - 1, Math.floor(self.progress / slideStep));
+          if (next !== photoIndex) {
+            photoIndex = next;
+            var slides = document.querySelectorAll(".polaroid-slide");
+            slides.forEach(function (s, i) { s.classList.toggle("is-current", i === photoIndex); });
+          }
+        }
+      }
+    });
+
+    // per-slide tilt (matches its polaroid's personality) — safe: only touches the slide, not the shared reel
+    gsap.utils.toArray(".polaroid-slide").forEach(function (slide, i) {
+      gsap.set(slide, { rotation: notePolaroids[i] ? notePolaroids[i].tilt : 0 });
+    });
+  }
+
   // ----- dreams: editorial reveals + image parallax -----
   gsap.utils.toArray(".dream-row").forEach(function (row) {
     gsap.from(row, {
@@ -636,7 +726,7 @@ function buildScrollStory() {
 var heartsCanvas = document.getElementById("hearts");
 var hctx = heartsCanvas ? heartsCanvas.getContext("2d") : null;
 var hearts = [];
-var HEART_COLORS = ["#e07a8b", "#d3a578", "#b85c6e", "#f3eee9"];
+var HEART_COLORS = ["#f65d8e", "#ff8fb3", "#e0426f", "#ffc2d6"];
 
 function resizeHearts() {
   if (!heartsCanvas) return;
@@ -719,7 +809,7 @@ function startExperience() {
 
   // finale photo collage
   var finale = document.getElementById("finale-photos");
-  var srcs = ["memory1.jpg", "memory2.jpg", "memory3.jpg", "cover.jpg"];
+  var srcs = ["assets/img/memory1.jpg", "assets/img/memory2.jpg", "assets/img/memory3.jpg", "assets/img/cover.jpg", "assets/img/biryani.jpg", "assets/img/cute-stuff.jpg", "assets/img/noice.jpg", "assets/img/park.jpg", "assets/img/red-hat.jpg", "assets/img/yellow-hat.jpg"];
   if (finale && !finale.childElementCount) {
     finale.innerHTML = srcs.map(function (s) {
       return '<div class="finale-photo"><img src="' + s + '" alt="" loading="lazy" /></div>';
@@ -733,6 +823,10 @@ function startExperience() {
   } else {
     document.querySelectorAll(".hero-title .line > span").forEach(function (s) { s.style.transform = "none"; });
   }
+
+  // scene 4 polaroid reel must exist BEFORE the scroll story builds its triggers
+  buildPolaroidReel();
+  preloadNotePolaroids();
 
   // scroll story first (trigger distances recalc when data renders)
   buildScrollStory();
