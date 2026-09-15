@@ -33,10 +33,10 @@
 
       <form id="gate-form" autocomplete="off">
         <div class="gate-field">
-          <input id="gate-user-input" type="text" placeholder="your name" autocomplete="off" spellcheck="false" required />
+          <input id="gate-user-input" type="text" placeholder="your name" autocomplete="off" spellcheck="false" maxlength="40" required />
         </div>
         <div class="gate-field">
-          <input id="gate-input" type="password" placeholder="the password" autocomplete="off" required />
+          <input id="gate-input" type="password" placeholder="the password" autocomplete="off" maxlength="128" required />
           <button type="submit" aria-label="Enter">→</button>
         </div>
         <p id="gate-error" class="gate-error">wrong password — try again, love</p>

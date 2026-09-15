@@ -4,6 +4,13 @@ env.js
 codebuff.json
 *.pem
 *.key
+*.token
+.tokens/
+
+# Backups / archives that might contain secrets
+*.zip
+*.tar
+*.tar.gz
 
 # OS noise
 .DS_Store
@@ -19,3 +26,4 @@ desktop.ini
 *.tmp
 *.bak
 *~
+/tmp/

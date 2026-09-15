@@ -117,16 +117,32 @@ var wholesomeAffirmations = [
 var gateEl, gateForm, gateInput, gateError;
 var gateUserInput;
 var gateAuthBusy = false;
-var IDENTITIES = [
-  { label: "for babieee", email: "aryansawant2265@gmail.com" },
-  { label: "aryan",       email: "teddbans@gmail.com" },
-  { label: "admin",       email: "kositakira@gmail.com" }
-];
+// Gate input hardening: only reasonable name/password characters are allowed.
+// The username is matched against the config list and never sent anywhere;
+// the password is sent ONLY to Supabase Auth's parameterized API (no SQL).
+var NAME_ALLOWED = /^[A-Za-z0-9 ._@\-]{0,40}$/;
+var PASS_ALLOWED = /^[\x20-\x7E]{0,128}$/; // printable ASCII, up to 128 chars
+// Login identities come from env config (SITE_USERS in .env / Vercel env vars →
+// env.js → SANCTUARY_CFG). Real emails stay out of source control. The labels
+// below are the public display names; the placeholder emails are inert until
+// SITE_USERS is configured.
+var IDENTITIES = (cfg.siteUsers && cfg.siteUsers.length)
+  ? cfg.siteUsers.map(function (u) {
+      return { label: String(u.label || "").slice(0, 40), email: String(u.email || "").trim().toLowerCase() };
+    })
+  : [
+      { label: "for babieee", email: "babieee@example.com" },
+      { label: "aryan",       email: "aryan@example.com" },
+      { label: "admin",       email: "admin@example.com" }
+    ];
 var DEFAULT_IDENTITY = IDENTITIES[0]; // "for babieee" is pre-filled; others type over it
 
-// find an identity by what the user typed (label or email, case/space-insensitive)
+// Find an identity by what the user typed (label or email, case-insensitive).
+// INJECTION-SAFE: the typed text is ONLY compared against the config list —
+// it never reaches Supabase. Only the canonical email from the config list
+// is sent to the auth API (which is parameterized anyway — no SQL involved).
 function matchIdentity(typed) {
-  var t = String(typed || "").trim().toLowerCase();
+  var t = String(typed || "").trim().toLowerCase().slice(0, 40);
   if (!t) return DEFAULT_IDENTITY; // empty username box → default "for babieee"
   for (var i = 0; i < IDENTITIES.length; i++) {
     if (IDENTITIES[i].label.toLowerCase() === t || IDENTITIES[i].email.toLowerCase() === t) return IDENTITIES[i];
@@ -195,11 +211,15 @@ async function handleGateSubmit(e) {
 
   var auth = window.SANCTUARY_AUTH;
   var val = gateInput.value.slice(0, 128); // input length cap (sanitize user input)
+  var typedName = gateUserInput ? gateUserInput.value.slice(0, 40) : "";
+  // reject anything that isn't a plain name/passphrase before it touches auth
+  if (!NAME_ALLOWED.test(typedName)) { gateFail("hmm — that name isn't on the guest list, love"); return; }
+  if (!PASS_ALLOWED.test(val)) { gateFail("wrong name or password — try again, love"); return; }
   gateAuthBusy = true;
 
   try {
     // --- Primary path: real Supabase login (the MAIN password) ---
-    var identity = matchIdentity(gateUserInput ? gateUserInput.value : "");
+    var identity = matchIdentity(gateUserInput ? gateUserInput.value.slice(0, 40) : "");
     if (!identity) {
       gateFail("hmm — that name isn't on the guest list, love");
       return;

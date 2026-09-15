@@ -10,6 +10,11 @@
 --
 -- Role is stored in auth.users.app_metadata, which users cannot
 -- edit themselves — only the service_role / dashboard can.
+--
+-- ⚠ PRIVACY: the real login emails are NOT stored in this repo.
+--   Before running section 6, replace EVERY `@example.com`
+--   address below with the real ones (or keep them and create
+--   the users via Dashboard → Authentication → Users instead).
 -- ============================================================
 
 -- ------------------------------------------------------------
@@ -110,25 +115,28 @@ REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;
 
 -- ------------------------------------------------------------
 -- 6. CREATE THE 3 USERS (one shared password for all three)
---    Run this AFTER enabling "Confirm email" is off (Auth → Providers
+--    ⚠ EDIT THE EMAILS + PASSWORD BELOW BEFORE RUNNING.
+--    Run this AFTER disabling "Confirm email" (Auth → Providers
 --    → Email → disable confirm) OR pre-mark them confirmed as below.
---    ⚠ CHANGE 'the-shared-password' to your real password first!
 -- ------------------------------------------------------------
 -- 6a. Create the users (idempotent — skips ones that already exist)
 DO $$
 DECLARE
   shared_password text := 'the-shared-password';  -- ⚠ change me
+  babieee_email   text := 'babieee@example.com';  -- ⚠ real email here
+  aryan_email     text := 'aryan@example.com';    -- ⚠ real email here
+  admin_email     text := 'admin@example.com';    -- ⚠ real email here
   u uuid;
 BEGIN
   -- 1) "for babieee" — read-only viewer
-  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'aryansawant2265@gmail.com') THEN
+  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = babieee_email) THEN
     INSERT INTO auth.users (
       instance_id, id, aud, role, email, encrypted_password,
       email_confirmed_at, created_at, updated_at,
       raw_app_meta_data, raw_user_meta_data
     )    VALUES (
       '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
-      'aryansawant2265@gmail.com', crypt(shared_password, gen_salt('bf')),
+      babieee_email, crypt(shared_password, gen_salt('bf')),
       now(), now(), now(),
       '{"role":"viewer","provider":"email","providers":["email"]}', '{}'
     );
@@ -136,18 +144,18 @@ BEGIN
     UPDATE auth.users
        SET raw_app_meta_data = jsonb_set(raw_app_meta_data, '{role}', '"viewer"'),
            encrypted_password = crypt(shared_password, gen_salt('bf'))
-     WHERE email = 'aryansawant2265@gmail.com';
+     WHERE email = babieee_email;
   END IF;
 
   -- 2) "aryan" — read-only viewer
-  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'teddbans@gmail.com') THEN
+  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = aryan_email) THEN
     INSERT INTO auth.users (
       instance_id, id, aud, role, email, encrypted_password,
       email_confirmed_at, created_at, updated_at,
       raw_app_meta_data, raw_user_meta_data
     )    VALUES (
       '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
-      'teddbans@gmail.com', crypt(shared_password, gen_salt('bf')),
+      aryan_email, crypt(shared_password, gen_salt('bf')),
       now(), now(), now(),
       '{"role":"viewer","provider":"email","providers":["email"]}', '{}'
     );
@@ -155,18 +163,18 @@ BEGIN
     UPDATE auth.users
        SET raw_app_meta_data = jsonb_set(raw_app_meta_data, '{role}', '"viewer"'),
            encrypted_password = crypt(shared_password, gen_salt('bf'))
-     WHERE email = 'teddbans@gmail.com';
+     WHERE email = aryan_email;
   END IF;
 
   -- 3) "admin" — full backend edit power
-  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'kositakira@gmail.com') THEN
+  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = admin_email) THEN
     INSERT INTO auth.users (
       instance_id, id, aud, role, email, encrypted_password,
       email_confirmed_at, created_at, updated_at,
       raw_app_meta_data, raw_user_meta_data
     )    VALUES (
       '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
-      'kositakira@gmail.com', crypt(shared_password, gen_salt('bf')),
+      admin_email, crypt(shared_password, gen_salt('bf')),
       now(), now(), now(),
       '{"role":"admin","provider":"email","providers":["email"]}', '{}'
     );
@@ -174,7 +182,7 @@ BEGIN
     UPDATE auth.users
        SET raw_app_meta_data = jsonb_set(raw_app_meta_data, '{role}', '"admin"'),
            encrypted_password = crypt(shared_password, gen_salt('bf'))
-     WHERE email = 'kositakira@gmail.com';
+     WHERE email = admin_email;
   END IF;
 END $$;
 
@@ -182,6 +190,7 @@ END $$;
 --     or password sign-in fails. (When users are created via the Auth
 --     dashboard or the GoTrue admin API, GoTrue writes this row itself —
 --     this block only matters for pure-SQL created users.)
+--     ⚠ EDIT the email list to match your real addresses.
 INSERT INTO auth.identities (
   user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at
 )
@@ -192,7 +201,11 @@ SELECT
   jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
   now(), now(), now()
 FROM auth.users u
-WHERE u.email IN ('aryansawant2265@gmail.com', 'teddbans@gmail.com', 'kositakira@gmail.com')
+WHERE u.email IN (
+    'babieee@example.com',  -- ⚠ real email here
+    'aryan@example.com',    -- ⚠ real email here
+    'admin@example.com'     -- ⚠ real email here
+  )
   AND NOT EXISTS (
     SELECT 1 FROM auth.identities i
     WHERE i.user_id = u.id AND i.provider_id = 'email'
@@ -200,13 +213,13 @@ WHERE u.email IN ('aryansawant2265@gmail.com', 'teddbans@gmail.com', 'kositakira
 
 -- 6c. Or skip the SQL and create them by hand:
 --     Dashboard → Authentication → Users → "Add user" →
---       • aryansawant2265@gmail.com  (Auto Confirm User ✓)  → role "viewer"
---       • teddbans@gmail.com         (Auto Confirm User ✓)  → role "viewer"
---       • kositakira@gmail.com       (Auto Confirm User ✓)  → role "admin"
+--       • babieee@example.com  (Auto Confirm User ✓)  → role "viewer"
+--       • aryan@example.com    (Auto Confirm User ✓)  → role "viewer"
+--       • admin@example.com    (Auto Confirm User ✓)  → role "admin"
 --     Then set each user's role with:
 --       UPDATE auth.users
 --          SET raw_app_meta_data = jsonb_set(raw_app_meta_data, '{role}', '"admin"')
---        WHERE email = 'kositakira@gmail.com';  -- repeat with "viewer" for the other two
+--        WHERE email = 'admin@example.com';  -- repeat with "viewer" for the other two
 
 -- ------------------------------------------------------------
 -- 7. Re-check everything
@@ -216,6 +229,6 @@ WHERE u.email IN ('aryansawant2265@gmail.com', 'teddbans@gmail.com', 'kositakira
 --  + INSERT/UPDATE/DELETE policies gated on is_sanctuary_admin().)
 --
 -- SELECT email, raw_app_meta_data->>'role' AS role FROM auth.users
---  WHERE email IN ('aryansawant2265@gmail.com','teddbans@gmail.com','kositakira@gmail.com');
--- (Should list: aryansawant2265→viewer, teddbans→viewer, kositakira→admin.)
+--  WHERE email IN ('babieee@example.com','aryan@example.com','admin@example.com');
+-- (Should list: babieee→viewer, aryan→viewer, admin→admin.)
 -- ============================================================
