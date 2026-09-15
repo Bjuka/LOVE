@@ -469,6 +469,64 @@
     .icon-btn:hover { color: var(--gold); border-color: var(--line); }
     .icon-btn.is-danger:hover { color: #d64560; }
 
+    /* ============ identity chips (shared with the site gate) ============ */
+    .gate-identities {
+      display: flex; flex-direction: column; gap: 0.5rem;
+      margin-bottom: 1.2rem;
+    }
+    .identity-chip {
+      display: flex; align-items: center; gap: 0.7rem;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--bg-2);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      font-weight: 400;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 0.3s, background 0.3s, transform 0.15s;
+    }
+    .identity-chip:hover { border-color: var(--rose-pastel); background: #fff; transform: translateY(-1px); }
+    .identity-chip.selected { border-color: var(--rose); background: #fff; box-shadow: 0 0 0 3px var(--rose-glow); }
+    .identity-chip .chip-avatar {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      display: grid; place-items: center;
+      background: var(--rose-pastel); color: var(--ink);
+      font-family: var(--serif); font-size: 0.95rem; font-weight: 600;
+    }
+    .identity-chip--admin .chip-avatar { background: linear-gradient(135deg, var(--rose), #b48ad0); color: #fff; }
+    .identity-chip .chip-text { display: flex; flex-direction: column; min-width: 0; }
+    .identity-chip .chip-name { font-weight: 500; font-size: 0.88rem; }
+    .identity-chip .chip-role {
+      font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--gold);
+    }
+    .identity-chip--admin .chip-role { color: var(--rose-deep); }
+    .gate-identity-email {
+      font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em;
+      color: var(--ink-faint); margin-bottom: 1.1rem; min-height: 1em;
+    }
+    .identity-badge {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--gold);
+      border: 1px solid var(--line); border-radius: 100px;
+      padding: 0.5rem 1rem;
+    }
+    .identity-badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--rose); }
+
+    /* read-only mode (viewers: "for babieee" / "aryan") — hide write affordances */
+    body.admin-readonly .create-card { display: none; }
+    body.admin-readonly .act-edit,
+    body.admin-readonly .act-delete { display: none; }
+    body.admin-readonly .row-actions::after {
+      content: "view only";
+      font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--ink-faint);
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .grain { animation: none; }
       * { transition: none !important; animation: none !important; }
@@ -487,11 +545,15 @@
       <p class="gate-sub">Management access. The film stays untouched behind this door.</p>
 
       <form id="admin-login-form">
+        <div id="admin-identities" class="gate-identities" role="radiogroup" aria-label="Who is signing in?">
+          <!-- identity chips rendered by auth.js/admin.js -->
+        </div>
+        <p id="admin-identity-email" class="gate-identity-email"></p>
         <div class="gate-field">
-          <input type="password" id="admin-pass-input" placeholder="master passcode" autocomplete="off" required />
+          <input type="password" id="admin-pass-input" placeholder="password" autocomplete="off" required />
           <button type="submit" aria-label="Enter">→</button>
         </div>
-        <p id="admin-auth-err" class="form-error">access denied — invalid passcode</p>
+        <p id="admin-auth-err" class="form-error">access denied — invalid credentials</p>
       </form>
     </div>
   </div>
@@ -557,7 +619,8 @@
       </div>
       <div class="topbar-actions">
         <a href="index.html" class="btn">← Back to the Film</a>
-        <button id="admin-logout-btn" class="btn btn--danger">Lock Session</button>
+        <span id="admin-identity-badge" class="identity-badge" title="Signed in as"></span>
+        <button id="admin-logout-btn" class="btn btn--danger">Log Out</button>
       </div>
     </header>
 
@@ -707,6 +770,8 @@
   <script src="env.js"></script>
   <!-- 2. Runtime config: validates env vars, enforces HTTPS, disables debug in production -->
   <script src="config.js"></script>
+  <!-- 3. Shared Supabase Auth layer (3 named logins + role resolution) -->
+  <script src="auth.js"></script>
   <!-- ==================== LOGIC ENGINE (CSP-safe: external file, zero inline handlers) ==================== -->
   <script src="admin.js"></script>
 </body>

@@ -6,7 +6,7 @@ A scroll-driven, cinematic love-letter website. The page reads like a film: scen
 
 The site is structured as scenes connected by scroll:
 
-1. **Gate** — a cinematic login screen ("A private screening"). Same passcode as before (SHA-256, session-based unlock).
+1. **Gate** — a cinematic login screen ("A private screening") with three identity chips — **for babieee** · **aryan** · **admin**. Same shared password for all three; sign-in goes through Supabase Auth (session-based unlock, per tab). The first two are view-only guests; `admin` also holds the keys to the Control Room.
 2. **Scene 01 · The Beginning** — full-screen cover photo with the title "To my entire universe & soulmate". Scrolling *zooms the camera into the photo* (pinned GSAP scrub), and the favorite-view quote fades in mid-zoom. Multiple favorite views auto-crossfade with ←/→ controls.
 3. **Scene 02 · Why You** — the big paragraph, revealed word-by-word as you scroll (scrub-linked opacity/motion).
 4. **Scene 03 · The Memory Box** — a **pinned horizontal reel**: vertical scrolling drives the memory film-strip sideways. Tilted photo frames straighten on hover.
@@ -29,8 +29,11 @@ Plus: film grain + vignette overlay, a fixed "film chrome" bar showing the curre
 
 - **Footer ✎** — bottom-right of the finale, a discreet ✎ links to the admin
 - **Triple-click "SANCTUARY"** in the top chrome bar
-- Admin unlocks automatically if you've already passed the site passcode this session — same password, typed once
+- The Control Room shows who you are (identity badge) — viewers see a read-only console; **admin** gets the full editing suite (create, edit, delete, upload, sync)
+- Edit power is enforced **twice**: the UI hides write actions for viewers, and Supabase RLS rejects viewer writes at the database level
 - "Lock Session" now returns you to the film (and clears the session)
+
+See `SECURITY.md` for creating the three users and setting their roles in Supabase.
 
 ## Structure
 
@@ -38,6 +41,7 @@ Plus: film grain + vignette overlay, a fixed "film chrome" bar showing the curre
 ├── index.html         # the film (scenes + gate)
 ├── style.css          # bespoke cinematic theme (no Tailwind)
 ├── script.js          # gate, Lenis, GSAP story, Supabase loaders, player
+├── auth.js            # shared Supabase Auth layer (3 named logins · viewer vs admin roles)
 ├── media.js           # media path resolver (legacy names → assets/)
 ├── whimsy.js          # heart trail, petal rain, aurora, polaroid corners
 ├── admin.html         # control room (CRUD, uploads, sync) — same design system

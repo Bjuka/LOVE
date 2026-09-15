@@ -169,18 +169,44 @@
       };
     })();
 
-    var ADMIN_PASSCODE_HASH = SEC.cfg.passwordHash;   // from env.js — never hardcoded
+    var ADMIN_PASSCODE_HASH = SEC.cfg.passwordHash;   // OPTIONAL legacy fallback (env.js)
     var SUPABASE_URL = SEC.cfg.supabaseUrl;           // from env.js — never hardcoded
     var SUPABASE_ANON_KEY = SEC.cfg.supabaseAnonKey;  // from env.js — never hardcoded
 
-    window.supabaseClient = (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY)
-      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-          auth: { persistSession: false, autoRefreshToken: false }
-        })
-      : null;
+    // One shared Supabase client, created by auth.js. After sign-in its JWT
+    // carries the user's role, and Supabase RLS enforces it server-side:
+    // "admin" writes pass · "viewer" writes are rejected by the database.
+    window.supabaseClient = window.SANCTUARY_AUTH ? window.SANCTUARY_AUTH.client() : null;
     var supabaseClient = window.supabaseClient;
 
     let currentCache = { memories: [], dreams: [], songs: [], views: [] };
+
+    // ---------- role helpers ("for babieee" / "aryan" = view-only · "admin" = full edit) ----------
+    function currentIdentity() {
+      const auth = window.SANCTUARY_AUTH;
+      return auth
+        ? { role: auth.getRole(), label: auth.getLabel(), canEdit: auth.canEdit() }
+        : { role: null, label: null, canEdit: false };
+    }
+
+    function requireAdmin(action) {
+      if (currentIdentity().canEdit) return true;
+      log('Permission denied — "' + (currentIdentity().label || 'guest') + '" is view-only. Sign in as admin to ' + (action || 'make changes') + '.', 'error');
+      return false;
+    }
+
+    function applyRoleToUi() {
+      const id = currentIdentity();
+      document.body.classList.toggle('admin-readonly', !id.canEdit);
+      const badge = document.getElementById('admin-identity-badge');
+      if (badge) badge.textContent = id.label ? (id.label + ' · ' + (id.canEdit ? 'full access' : 'view only')) : '';
+      // viewers: create forms + sync are disabled (UI mirror of the RLS rules)
+      document.querySelectorAll('.create-card form').forEach(form => {
+        form.querySelectorAll('input, textarea, button[type="submit"]').forEach(el => { el.disabled = !id.canEdit; });
+      });
+      const syncBtn = document.getElementById('sync-btn');
+      if (syncBtn) syncBtn.disabled = !id.canEdit;
+    }
 
     // --- 1. ADMIN GATE SECURITY ---
     async function sha256(str) {
@@ -188,10 +214,54 @@
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
+    var adminSelectedIdentity = null;
+
+    // identity chips — "for babieee" · "aryan" · "admin"
+    function renderAdminIdentities() {
+      const wrap = document.getElementById('admin-identities');
+      const emailEl = document.getElementById('admin-identity-email');
+      const auth = window.SANCTUARY_AUTH;
+      if (!wrap || !auth) return;
+      const identities = auth.getIdentities();
+      if (!identities.length) {
+        wrap.style.display = 'none';
+        if (emailEl) emailEl.style.display = 'none';
+        return; // no identities configured → legacy master-passcode gate
+      }
+      wrap.innerHTML = identities.map((u, i) => {
+        const isAdmin = String(u.label).toLowerCase() === 'admin';
+        const initial = (u.label || '?').trim().charAt(0).toUpperCase();
+        return `<button type="button" class="identity-chip${isAdmin ? ' identity-chip--admin' : ''}${i === 0 ? ' selected' : ''}" data-email="${SEC.escapeAttr(u.email)}">` +
+          `<span class="chip-avatar" aria-hidden="true">${SEC.escapeHtml(initial)}</span>` +
+          `<span class="chip-text"><span class="chip-name">${SEC.escapeHtml(u.label)}</span>` +
+          `<span class="chip-role">${isAdmin ? 'full access' : 'view only'}</span></span></button>`;
+      }).join('');
+      adminSelectedIdentity = identities[0];
+      if (emailEl) emailEl.textContent = identities[0].email;
+      wrap.addEventListener('click', (e) => {
+        const chip = e.target.closest ? e.target.closest('.identity-chip') : null;
+        if (!chip) return;
+        wrap.querySelectorAll('.identity-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        const email = chip.getAttribute('data-email');
+        adminSelectedIdentity = identities.filter(u => u.email === email)[0] || null;
+        if (emailEl) emailEl.textContent = adminSelectedIdentity ? adminSelectedIdentity.email : '';
+        document.getElementById('admin-pass-input').focus();
+      });
+    }
+
     async function handleAdminLogin(e) {
       if (e) e.preventDefault();
       const input = document.getElementById('admin-pass-input');
       const errEl = document.getElementById('admin-auth-err');
+      const auth = window.SANCTUARY_AUTH;
+
+      const showErr = (msg) => {
+        errEl.textContent = msg;
+        errEl.classList.add('show');
+        input.value = '';
+        input.focus();
+      };
 
       if (SEC.authLocked()) {
         const mins = Math.ceil(SEC.authLockRemainingMs() / 60000);
@@ -200,31 +270,96 @@
         return;
       }
 
-      const val = SEC.sanitizeText(input.value, 128);
-      const hash = await sha256(val);
-
-      if (hash === ADMIN_PASSCODE_HASH) {
-        SEC.resetAuthFailures();
-        SEC.csrfToken(); // mint CSRF token for this session
-        // sessionStorage (not a persistent cookie) — auto-expires with the tab.
-        // Server-side httpOnly sessions are documented as the next step in README.md.
-        sessionStorage.setItem('sanctuary_admin_auth', 'secure');
-        document.body.classList.remove('admin-locked');
-        document.getElementById('admin-gate').style.display = 'none';
-        initAdminDashboard();
-      } else {
+      // --- Legacy path: no identities configured → old master passcode (owner) ---
+      if (!auth || !auth.getIdentities().length) {
+        const val = SEC.sanitizeText(input.value, 128);
+        if (ADMIN_PASSCODE_HASH && auth) {
+          const legacyRes = await auth.signInLegacy(val, ADMIN_PASSCODE_HASH, true); // true = owner, full edit
+          if (legacyRes.ok) {
+            SEC.resetAuthFailures();
+            SEC.csrfToken();
+            sessionStorage.setItem('sanctuary_admin_auth', 'secure');
+            sessionStorage.setItem('sanctuary_role', 'admin');
+            sessionStorage.setItem('sanctuary_identity', 'admin');
+            document.body.classList.remove('admin-locked');
+            document.getElementById('admin-gate').style.display = 'none';
+            applyRoleToUi();
+            initAdminDashboard();
+            return;
+          }
+        } else if (!ADMIN_PASSCODE_HASH) {
+          // Legacy master passcode removed from env — this path can never open.
+          SEC.recordAuthFailure();
+          showErr('no logins configured — set SITE_USERS or SANCTUARY_PASSWORD_HASH in env');
+          return;
+        }
         SEC.recordAuthFailure();
-        errEl.textContent = 'access denied — invalid passcode';
-        errEl.classList.add('show');
-        input.value = '';
-        input.focus();
+        showErr('access denied — invalid passcode');
+        return;
+      }
+
+      // --- Primary path: Supabase Auth sign-in (the MAIN password) ---
+      const val = input.value.slice(0, 128);
+      const res = await auth.signIn(adminSelectedIdentity ? adminSelectedIdentity.email : '', val);
+      if (!res.ok && res.error !== 'bad-credentials') {
+        SEC.recordAuthFailure();
+        showErr(res.message || 'could not sign in');
+        return;
+      }
+
+      // --- BACKUP password (view-only): accepted here, but grants NO edit rights ---
+      // (requireAdmin() + Supabase RLS still block every write for this session.)
+      if (!res.ok && ADMIN_PASSCODE_HASH) {
+        const hash = await sha256(val);
+        if (hash === ADMIN_PASSCODE_HASH) {
+          SEC.resetAuthFailures();
+          SEC.csrfToken();
+          await auth.signInLegacy(val, ADMIN_PASSCODE_HASH); // view-only session
+          sessionStorage.setItem('sanctuary_admin_auth', 'secure');
+          sessionStorage.setItem('sanctuary_role', 'legacy');
+          sessionStorage.setItem('sanctuary_identity', 'guest');
+          document.body.classList.remove('admin-locked');
+          document.getElementById('admin-gate').style.display = 'none';
+          applyRoleToUi();
+          initAdminDashboard();
+          log('Backup passcode accepted — view only. Sign in as admin for edit rights.', 'info');
+          return;
+        }
+      }
+
+      if (!res.ok) {
+        SEC.recordAuthFailure();
+        showErr('access denied — invalid credentials');
+        return;
+      }
+
+      SEC.resetAuthFailures();
+      SEC.csrfToken(); // mint CSRF token for this session
+      // sessionStorage (not a persistent cookie) — auto-expires with the tab.
+      sessionStorage.setItem('sanctuary_admin_auth', 'secure');
+      sessionStorage.setItem('sanctuary_role', res.identity.role);
+      sessionStorage.setItem('sanctuary_identity', res.identity.label || '');
+      errEl.classList.remove('show');
+      document.body.classList.remove('admin-locked');
+      document.getElementById('admin-gate').style.display = 'none';
+      applyRoleToUi();
+      initAdminDashboard();
+      if (!res.identity.canEdit) {
+        log('Signed in as "' + res.identity.label + '" — view only. Sign in as admin to edit content.', 'info');
       }
     }
 
     function adminLogout() {
-      sessionStorage.removeItem('sanctuary_admin_auth');
-      sessionStorage.removeItem('sanctuary_unlocked');
-      window.location.href = 'index.html';
+      // synchronous local wipe first, then navigate — nothing can race it
+      if (window.SANCTUARY_AUTH && window.SANCTUARY_AUTH.hardClearSession) {
+        window.SANCTUARY_AUTH.hardClearSession();
+      } else {
+        ['sanctuary_admin_auth', 'sanctuary_unlocked', 'sanctuary_role', 'sanctuary_identity']
+          .forEach(k => sessionStorage.removeItem(k));
+      }
+      try { sessionStorage.setItem('sanctuary_force_gate', '1'); } catch (e) {}
+      if (window.SANCTUARY_AUTH) { try { window.SANCTUARY_AUTH.signOut(); } catch (e2) {} } // background revoke
+      window.location.href = 'index.html'; // → the gate (username + password)
     }
 
     // --- 2. PREVIEW UTILITY HELPERS ---
@@ -298,6 +433,7 @@
     };
 
     async function runManualSync() {
+      if (!requireAdmin('sync content')) return; // admin-only action
       if (!supabaseClient) {
         log("Supabase client not initialized.", 'error');
         return;
@@ -412,6 +548,7 @@
 
     async function handleCreateMemory(e) {
       e.preventDefault();
+      if (!requireAdmin('add memories')) return;
       const btn = document.getElementById('mem-submit-btn');
       btn.textContent = "Uploading...";
       btn.disabled = true;
@@ -451,6 +588,7 @@
 
     async function handleCreateDream(e) {
       e.preventDefault();
+      if (!requireAdmin('add dreams')) return;
       const btn = document.getElementById('dream-submit-btn');
       btn.textContent = "Uploading...";
       btn.disabled = true;
@@ -489,6 +627,7 @@
 
     async function handleCreateSong(e) {
       e.preventDefault();
+      if (!requireAdmin('upload songs')) return;
       const btn = document.getElementById('song-submit-btn');
       btn.textContent = "Uploading audio...";
       btn.disabled = true;
@@ -522,6 +661,7 @@
 
     async function handleCreateFavoriteView(e) {
       e.preventDefault();
+      if (!requireAdmin('add views')) return;
       const btn = document.getElementById('view-submit-btn');
       btn.textContent = "Uploading...";
       btn.disabled = true;
@@ -570,6 +710,7 @@
 
     function openEditModal(table, id) {
       if (EDIT_TABLES.indexOf(table) === -1) { alert('Unknown record type.'); return; }
+      if (!requireAdmin('edit records')) return; // viewers cannot open the editor
       const modal = document.getElementById('edit-modal');
       const fields = document.getElementById('edit-fields-container');
       const tableInput = document.getElementById('edit-table');
@@ -679,6 +820,7 @@
 
     async function handleSaveEdit(e) {
       e.preventDefault();
+      if (!requireAdmin('edit records')) return;
       const btn = document.getElementById('edit-save-btn');
       btn.textContent = "Updating...";
       btn.disabled = true;
@@ -761,6 +903,7 @@
 
     async function deleteRecord(table, id) {
       if (DELETE_TABLES.indexOf(table) === -1) { log('Delete blocked: unknown table.', 'error'); return; }
+      if (!requireAdmin('delete records')) return; // admin-only action
       if (!SEC.assertCsrf()) { log('Session token missing — reload the page.', 'error'); return; }
       if (!confirm('Are you sure you want to permanently delete this row from ' + table + '?')) return;
 
@@ -942,18 +1085,21 @@
     function escapeHtml(str) { return SEC.escapeHtml(str); }
     function escapeAttr(str) { return SEC.escapeAttr(str); }
 
-    // Auto-login if session exists — or if the site gate was already
-    // unlocked this session (same passcode, no need to type it twice)
-    document.addEventListener('DOMContentLoaded', () => {
-      const adminAuthed = sessionStorage.getItem('sanctuary_admin_auth') === 'secure'; // validate exact flag value
-      const siteUnlocked = sessionStorage.getItem('sanctuary_unlocked') === 'true';
-      if (adminAuthed || siteUnlocked) {
+    // Auto-login: restore an existing Supabase session for this tab, or the
+    // legacy legacy admin flag. Site-unlocked alone no longer grants edit power.
+    document.addEventListener('DOMContentLoaded', async () => {
+      const auth = window.SANCTUARY_AUTH;
+      const restored = auth ? await auth.restore() : null;   // real Supabase session
+      const adminAuthed = sessionStorage.getItem('sanctuary_admin_auth') === 'secure'; // legacy flag
+      if (restored || adminAuthed) {
         sessionStorage.setItem('sanctuary_admin_auth', 'secure');
         SEC.csrfToken();
         document.body.classList.remove('admin-locked');
         document.getElementById('admin-gate').style.display = 'none';
+        applyRoleToUi();
         initAdminDashboard();
       } else {
+        renderAdminIdentities();
         document.getElementById('admin-pass-input').focus();
       }
     });

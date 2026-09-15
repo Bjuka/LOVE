@@ -6,19 +6,23 @@
 // ==================== CONFIG ====================
 // Keys no longer live in code. config.js + env.js (gitignored, generated)
 // supply them at runtime; see secure/env.example.js.
-var cfg = window.SANCTUARY_CFG || { supabaseUrl: "", supabaseAnonKey: "", passwordHash: "", debug: false };
+var cfg = window.SANCTUARY_CFG || { supabaseUrl: "", supabaseAnonKey: "", passwordHash: "", siteUsers: [], debug: false };
 var SUPABASE_URL = cfg.supabaseUrl;
 var SUPABASE_ANON_KEY = cfg.supabaseAnonKey;
-var SANCTUARY_PASSWORD_HASH = cfg.passwordHash;
+var SANCTUARY_PASSWORD_HASH = cfg.passwordHash; // OPTIONAL legacy fallback passcode
 var DEBUG = !!cfg.debug;
 function debugLog() { if (DEBUG && window.console && console.log.apply) console.log.apply(console, ["[SANCTUARY]"].concat([].slice.call(arguments))); }
 
-var supabaseClient = (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY)
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-      global: { headers: { "X-Client-Info": "sanctuary-secure" } }
-    })
-  : null;
+// Content reads go through the SAME Supabase client created by auth.js so
+// they carry the signed-in session (RLS grants readers: authenticated users).
+var supabaseClient = (window.SANCTUARY_AUTH && window.SANCTUARY_AUTH.client())
+  ? window.SANCTUARY_AUTH.client()
+  : ((window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY)
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          auth: { persistSession: false, autoRefreshToken: false },
+          global: { headers: { "X-Client-Info": "sanctuary-secure" } }
+        })
+      : null);
 
 var REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 var HAS_GSAP = typeof gsap !== "undefined" && typeof ScrollTrigger !== "undefined";
@@ -111,10 +115,35 @@ var wholesomeAffirmations = [
 // 1 · LOGIN GATE
 // ============================================================
 var gateEl, gateForm, gateInput, gateError;
+var gateUserInput;
+var gateAuthBusy = false;
+var IDENTITIES = [
+  { label: "for babieee", email: "aryansawant2265@gmail.com" },
+  { label: "aryan",       email: "teddbans@gmail.com" },
+  { label: "admin",       email: "kositakira@gmail.com" }
+];
+var DEFAULT_IDENTITY = IDENTITIES[0]; // "for babieee" is pre-filled; others type over it
+
+// find an identity by what the user typed (label or email, case/space-insensitive)
+function matchIdentity(typed) {
+  var t = String(typed || "").trim().toLowerCase();
+  if (!t) return DEFAULT_IDENTITY; // empty username box → default "for babieee"
+  for (var i = 0; i < IDENTITIES.length; i++) {
+    if (IDENTITIES[i].label.toLowerCase() === t || IDENTITIES[i].email.toLowerCase() === t) return IDENTITIES[i];
+  }
+  return null;
+}
 
 function unlockSite() {
-  sessionStorage.setItem("sanctuary_unlocked", "true");
+  var auth = window.SANCTUARY_AUTH;
+  var role = auth ? auth.getRole() : "legacy";
+  try {
+    sessionStorage.setItem("sanctuary_unlocked", "true");
+    sessionStorage.setItem("sanctuary_role", role || "legacy");
+    sessionStorage.setItem("sanctuary_identity", auth ? (auth.getLabel() || "guest") : "guest");
+  } catch (e) {}
   document.body.classList.remove("locked");
+  document.body.setAttribute("data-role", role || "legacy");
   spawnHeartBurst(window.innerWidth / 2, window.innerHeight * 0.6, 26);
   startExperience();
 }
@@ -128,53 +157,114 @@ function gateThrottled() {
   return false;
 }
 
+function gateFail(message) {
+  gateAttempts++;
+  gateError.textContent = message || "wrong passcode — try again, love";
+  gateError.classList.add("show");
+  gateError.classList.remove("shake");
+  void gateError.offsetWidth;
+  gateError.classList.add("shake");
+  gateInput.value = "";
+  gateInput.focus();
+}
+
+function gateEnter() {
+  gateError.classList.remove("show");
+  if (HAS_GSAP && !REDUCED) {
+    var tl = gsap.timeline({ onComplete: function () {
+      gateEl.style.display = "none";
+      unlockSite();
+    }});
+    tl.to(gateEl.querySelector(".gate-inner"), { y: -26, opacity: 0, duration: 0.7, ease: "power3.in" })
+      .to(gateEl.querySelectorAll(".gate-corner"), { opacity: 0, duration: 0.4 }, "<")
+      .to(gateEl, { opacity: 0, duration: 0.7, ease: "power2.inOut" });
+  } else {
+    gateEl.classList.add("open");
+    setTimeout(function () { gateEl.style.display = "none"; unlockSite(); }, 900);
+  }
+}
+
 async function handleGateSubmit(e) {
   e.preventDefault();
+  if (gateAuthBusy) return;
   if (gateThrottled()) {
     gateError.textContent = "too many attempts — take a breath, 30s pause 🌸";
     gateError.classList.add("show");
     return;
   }
+
+  var auth = window.SANCTUARY_AUTH;
   var val = gateInput.value.slice(0, 128); // input length cap (sanitize user input)
-  var hash = await sha256(val);
-  if (hash === SANCTUARY_PASSWORD_HASH) {  // hash-only comparison — the old "paste-the-hash" bypass is removed
-    gateError.classList.remove("show");
-    if (HAS_GSAP && !REDUCED) {
-      var tl = gsap.timeline({ onComplete: function () {
-        gateEl.style.display = "none";
-        unlockSite();
-      }});
-      tl.to(gateEl.querySelector(".gate-inner"), { y: -26, opacity: 0, duration: 0.7, ease: "power3.in" })
-        .to(gateEl.querySelectorAll(".gate-corner"), { opacity: 0, duration: 0.4 }, "<")
-        .to(gateEl, { opacity: 0, duration: 0.7, ease: "power2.inOut" });
-    } else {
-      gateEl.classList.add("open");
-      setTimeout(function () { gateEl.style.display = "none"; unlockSite(); }, 900);
+  gateAuthBusy = true;
+
+  try {
+    // --- Primary path: real Supabase login (the MAIN password) ---
+    var identity = matchIdentity(gateUserInput ? gateUserInput.value : "");
+    if (!identity) {
+      gateFail("hmm — that name isn't on the guest list, love");
+      return;
     }
-  } else {
-    gateAttempts++;
-    gateError.classList.add("show");
-    gateError.classList.remove("shake");
-    void gateError.offsetWidth;
-    gateError.classList.add("shake");
-    gateInput.value = "";
-    gateInput.focus();
+    if (auth) {
+      var res = await auth.signIn(identity.email, val);
+      if (res.ok) { gateEnter(); return; }
+      // bad-credentials → try the backup password below · other errors → report
+      if (res.error !== "bad-credentials" && res.error !== "auth-unavailable") {
+        gateFail(res.message || "could not sign in");
+        return;
+      }
+    }
+
+    // --- BACKUP password (view-only): SHA-256 from SANCTUARY_PASSWORD_HASH ---
+    // Works when Supabase is down OR the main password was mistyped.
+    // Never grants admin/edit rights.
+    if (SANCTUARY_PASSWORD_HASH) {
+      var hash = await sha256(val);
+      if (hash === SANCTUARY_PASSWORD_HASH) {
+        if (auth) await auth.signInLegacy(val, SANCTUARY_PASSWORD_HASH);
+        gateEnter();
+        return;
+      }
+    }
+
+    gateFail("wrong name or password — try again, love");
+  } catch (err) {
+    debugLog("gate error", err);
+    gateFail("something went wrong — try again");
+  } finally {
+    gateAuthBusy = false;
   }
 }
 
-function initGate() {
+// --- gate: two text boxes — username (pre-filled "for babieee") + password ---
+async function initGate() {
   gateEl = document.getElementById("gate");
   gateForm = document.getElementById("gate-form");
   gateInput = document.getElementById("gate-input");
   gateError = document.getElementById("gate-error");
+  gateUserInput = document.getElementById("gate-user-input");
+  gateUserInput.value = DEFAULT_IDENTITY.label; // "for babieee" pre-filled
   gateForm.addEventListener("submit", handleGateSubmit);
-  gateInput.focus();
 
-  if (sessionStorage.getItem("sanctuary_unlocked") === "true") {
+  // explicit logout always wins — never auto-unlock on this load
+  var forcedGate = false;
+  try {
+    forcedGate = sessionStorage.getItem("sanctuary_force_gate") === "1";
+    if (forcedGate) sessionStorage.removeItem("sanctuary_force_gate");
+  } catch (e) {}
+
+  // restore an existing Supabase session for this tab (page refresh)
+  var auth = window.SANCTUARY_AUTH;
+  var restored = forcedGate ? null : (auth ? await auth.restore() : null);
+  if (!forcedGate && (restored || sessionStorage.getItem("sanctuary_unlocked") === "true")) {
     gateEl.style.display = "none";
     document.body.classList.remove("locked");
+    document.body.setAttribute("data-role", restored ? restored.role : (sessionStorage.getItem("sanctuary_role") || "legacy"));
     startExperience();
+    return;
   }
+
+  gateUserInput.focus();
+  gateUserInput.select(); // one backspace/select-all replaces the default name
 }
 
 // ============================================================
@@ -796,6 +886,37 @@ document.getElementById("chrome-logo").addEventListener("click", function () {
     window.location.href = "admin.html";
   }
 });
+
+// ============================================================
+// 7b · LOG OUT — switch to a different username
+// ============================================================
+// Clears this tab's whole session (Supabase auth + unlock flags) and
+// reloads to the gate, so another identity can sign in.
+function initLogoutButton() {
+  var btn = document.getElementById("chrome-logout");
+  if (!btn) return;
+  var auth = window.SANCTUARY_AUTH;
+  var signedIn = !!(auth && auth.isUnlocked && auth.isUnlocked()) ||
+    sessionStorage.getItem("sanctuary_unlocked") === "true";
+  btn.hidden = !signedIn; // invisible until someone is signed in
+  btn.addEventListener("click", function () {
+    // 1. synchronous wipe FIRST — nothing async can race the reload
+    if (auth && auth.hardClearSession) auth.hardClearSession();
+    else {
+      try {
+        ["sanctuary_unlocked", "sanctuary_role", "sanctuary_identity", "sanctuary_admin_auth"]
+          .forEach(function (k) { sessionStorage.removeItem(k); });
+      } catch (e) {}
+    }
+    // 2. mark the gate as mandatory for the very next load
+    try { sessionStorage.setItem("sanctuary_force_gate", "1"); } catch (e2) {}
+    // 3. fire-and-forget server-side revoke (never blocks the reload)
+    if (auth && auth.signOut) { try { auth.signOut(); } catch (e3) {} }
+    // 4. reload → the gate (username + password) shows
+    window.location.reload();
+  });
+}
+initLogoutButton();
 
 // ============================================================
 // 8 · INIT
