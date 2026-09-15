@@ -7,7 +7,7 @@
   <meta name="robots" content="noindex" />
 
   <!-- Defense-in-depth CSP (vercel.json sends the full header incl. frame-ancestors, which <meta> cannot deliver) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; base-uri 'self'; form-action 'self'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vitals.vercel-insights.com; base-uri 'self'; form-action 'self'" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -219,7 +219,7 @@
         <p>made with love, only for you</p>
         <div class="foot-right">
           <span class="foot-fade">THE END —</span>
-          <a href="admin.html" id="foot-edit" title="editor">✎</a>
+          <a href="admin.html" id="foot-edit" title="editor">���</a>
         </div>
       </footer>
     </section>
@@ -243,5 +243,13 @@
   <script src="auth.js"></script>
   <script src="script.js"></script>
   <script src="whimsy.js"></script>
+  <!-- Vercel Speed Insights -->
+  <script src="vendor/speed-insights.js"></script>
+  <script>
+    // Initialize Vercel Speed Insights
+    if (window.vercelSpeedInsights) {
+      window.vercelSpeedInsights.injectSpeedInsights();
+    }
+  </script>
 </body>
 </html>

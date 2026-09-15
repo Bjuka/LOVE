@@ -1,0 +1,11 @@
+{
+  "name": "sanctuary-love",
+  "version": "1.0.0",
+  "description": "A private sanctuary film experience",
+  "scripts": {
+    "build": "node api/generate-env.js"
+  },
+  "dependencies": {
+    "@vercel/speed-insights": "^1.0.0"
+  }
+}

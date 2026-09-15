@@ -774,5 +774,13 @@
   <script src="auth.js"></script>
   <!-- ==================== LOGIC ENGINE (CSP-safe: external file, zero inline handlers) ==================== -->
   <script src="admin.js"></script>
+  <!-- Vercel Speed Insights -->
+  <script src="vendor/speed-insights.js"></script>
+  <script>
+    // Initialize Vercel Speed Insights
+    if (window.vercelSpeedInsights) {
+      window.vercelSpeedInsights.injectSpeedInsights();
+    }
+  </script>
 </body>
 </html>
