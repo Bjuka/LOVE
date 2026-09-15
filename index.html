@@ -33,10 +33,13 @@
 
       <form id="gate-form" autocomplete="off">
         <div class="gate-field">
-          <input id="gate-input" type="password" placeholder="enter the passcode" autocomplete="off" required />
+          <input id="gate-user-input" type="text" placeholder="your name" autocomplete="off" spellcheck="false" required />
+        </div>
+        <div class="gate-field">
+          <input id="gate-input" type="password" placeholder="the password" autocomplete="off" required />
           <button type="submit" aria-label="Enter">→</button>
         </div>
-        <p id="gate-error" class="gate-error">wrong passcode — try again, love</p>
+        <p id="gate-error" class="gate-error">wrong password — try again, love</p>
       </form>
 
       <p class="gate-foot">EST. FOREVER · RUNTIME ∞</p>
@@ -50,7 +53,10 @@
     <span class="chrome-left"><span class="chrome-dot"></span><span id="chrome-chapter">SCENE 01 — THE BEGINNING</span>
     </span>
     <span class="chrome-center" id="chrome-logo" title="sanctuary">SANCTUARY</span>
-    <span class="chrome-right">DIR. YOURS TRULY</span>
+    <span class="chrome-right">
+      <button id="chrome-logout" class="chrome-logout" type="button" title="log out — sign in as someone else" hidden>log out ⏻</button>
+      <span>DIR. YOURS TRULY</span>
+    </span>
   </div>
   <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
 
@@ -233,6 +239,8 @@
   <script src="vendor/ScrollTrigger.min.js"></script>
   <script src="vendor/lenis.min.js"></script>
   <script src="vendor/supabase.js"></script>
+  <!-- 3. Shared Supabase Auth layer (3 named logins + role resolution) -->
+  <script src="auth.js"></script>
   <script src="script.js"></script>
   <script src="whimsy.js"></script>
 </body>

@@ -18,9 +18,20 @@ export default function handler() {
   const hash = process.env.SANCTUARY_PASSWORD_HASH || "";
   const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
 
+  // Named gate identities — same JSON format as api/generate-env.js
+  let siteUsers = [];
+  try {
+    siteUsers = JSON.parse(process.env.SITE_USERS || "[]");
+    if (!Array.isArray(siteUsers)) siteUsers = [];
+    siteUsers = siteUsers
+      .filter((u) => u && typeof u.label === "string" && typeof u.email === "string" && u.label && u.email)
+      .map((u) => ({ label: String(u.label).slice(0, 40), email: String(u.email).trim().toLowerCase() }));
+  } catch (e) { siteUsers = []; }
+
   const body = JSON.stringify({
     SUPABASE_URL: url,
     SUPABASE_ANON_KEY: isProd && !url ? "" : key,
+    SITE_USERS: siteUsers,
     SANCTUARY_PASSWORD_HASH: hash,
     DEBUG: false, // production never gets debug
     DEPLOYED_AT: new Date().toISOString()

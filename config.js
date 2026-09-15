@@ -38,7 +38,12 @@
   var cfg = {
     supabaseUrl: need("SUPABASE_URL"),
     supabaseAnonKey: need("SUPABASE_ANON_KEY"),
-    passwordHash: need("SANCTUARY_PASSWORD_HASH"),
+    // Optional legacy fallback hash — used only when Supabase Auth is not
+    // configured. New logins go through Supabase Auth (3 named users).
+    passwordHash: injected.SANCTUARY_PASSWORD_HASH || "",
+    // Named login identities — one entry per viewer ("for babieee", "aryan",
+    // "admin"). Each entry: { label, email } — passwords live in Supabase Auth.
+    siteUsers: injected.SITE_USERS || [],
     debug: injected.DEBUG === true,
     deployedAt: injected.DEPLOYED_AT || null
   };
@@ -46,6 +51,10 @@
   // ---------- 3. Production checks (fail fast & loud in dev, quiet fail in prod) ----------
   function isProd() {
     return !isLocalHost() && location.protocol === "https:";
+  }
+
+  if (cfg.siteUsers.length === 0 && !cfg.passwordHash) {
+    missing.push("SITE_USERS"); // no Supabase users AND no legacy hash — nothing can unlock the gate
   }
 
   if (missing.length) {
