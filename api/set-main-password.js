@@ -16,8 +16,7 @@
 
      3) Or put these in .env first (then just run `node api/set-main-password.js`):
           SUPABASE_ACCESS_TOKEN=sbp_xxx
-          SUPABASE_PROJECT_REF=idlhbjoxxskzmvzrhjpb
-          SUPABASE_MANAGEMENT_URL=https://api.supabase.com   (default)
+          SUPABASE_PROJECT_REF=your-project-ref        (from Dashboard → Settings → General)
 
    Which users get it? The emails in SITE_USERS from .env, or the
    3 known Sanctuary emails if SITE_USERS is absent.
@@ -42,7 +41,7 @@ if (fs.existsSync(envFile)) {
 }
 
 const TOKEN = process.env.SUPABASE_ACCESS_TOKEN || "";
-const REF = process.env.SUPABASE_PROJECT_REF || "idlhbjoxxskzmvzrhjpb";
+const REF = process.env.SUPABASE_PROJECT_REF || "";
 const API = process.env.SUPABASE_MANAGEMENT_URL || "https://api.supabase.com";
 const NEW_PASSWORD = process.argv[2] || "";
 
@@ -50,6 +49,12 @@ if (!TOKEN) {
   console.error("✗ Missing SUPABASE_ACCESS_TOKEN.");
   console.error("  Get one: Supabase Dashboard → Account → Access Tokens");
   console.error("  Run:  SUPABASE_ACCESS_TOKEN=sbp_xxx node api/set-main-password.js \"new password\"");
+  process.exit(1);
+}
+if (!REF) {
+  console.error("✗ Missing SUPABASE_PROJECT_REF.");
+  console.error("  Find it: Supabase Dashboard → Settings → General → Reference ID");
+  console.error("  Put it in .env (gitignored): SUPABASE_PROJECT_REF=yourref");
   process.exit(1);
 }
 if (!NEW_PASSWORD) {
@@ -69,7 +74,10 @@ try {
   if (Array.isArray(users)) emails = users.map((u) => String(u.email || "").trim().toLowerCase()).filter(Boolean);
 } catch (e) { /* fall through to defaults */ }
 if (!emails.length) {
-  emails = ["aryansawant2265@gmail.com", "teddbans@gmail.com", "kositakira@gmail.com"];
+  console.error("✗ No user emails configured.");
+  console.error("  Set SITE_USERS in .env (see .env.example), e.g.:");
+  console.error("    SITE_USERS='[{\"label\":\"for babieee\",\"email\":\"babieee@example.com\"},...]'");
+  process.exit(1);
 }
 
 async function main() {

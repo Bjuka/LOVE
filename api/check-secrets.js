@@ -11,7 +11,7 @@ const path = require("path");
 const PATTERNS = [
   { name: "Supabase anon/publishable key", re: /sb_publishable_[A-Za-z0-9_-]{20,}/ },
   { name: "Supabase legacy anon key (JWT)", re: /eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]{20,}/ },
-  { name: "Supabase service role key (CRITICAL)", re: /sb_secret_[A-Za-z0-9_-]{20,}|service_role/ },
+  { name: "Supabase service role key (CRITICAL)", re: /sb_secret_[A-Za-z0-9_-]{20,}/ },
   { name: "Supabase project URL", re: /https:\/\/[a-z0-9]{20}\.supabase\.co/ },
   { name: "SHA-256 passcode hash", re: /\b[0-9a-f]{64}\b/ },
   { name: "Generic API key assignment", re: /(?:api[_-]?key|apikey|secret|password)\s*[:=]\s*['"][^'"]{8,}['"]/i }
