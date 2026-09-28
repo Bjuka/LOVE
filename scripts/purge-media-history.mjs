@@ -78,7 +78,9 @@ ex.on("close", code => {
       continue;
     }
     if (text.startsWith("M ")) {
-      const pathToken = text.slice(text.lastIndexOf(" ") + 1);
+      // Format: M <mode> <40-hex-sha|:<mark>> <path…spaces allowed…>
+      const m = text.match(/^M \d+ (?:[0-9a-f]{40}|:\d+) (.+)$/);
+      const pathToken = m ? m[1] : text.slice(text.lastIndexOf(" ") + 1);
       if (KILL_RE.test(pathToken)) { stripped++; p = nl + 1; continue; }
     }
     out.push(line, Buffer.from([0x0a]));
