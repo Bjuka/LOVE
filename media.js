@@ -46,9 +46,16 @@
     "you-and-i.mp3": 1
   };
 
-  var cfg = window.SANCTUARY_CFG || {};
-  var supabaseUrl = String(cfg.supabaseUrl || "").replace(/\/+$/, "");
-  var anonKey = cfg.supabaseAnonKey || "";
+  // config is read LAZILY: this file loads BEFORE env.js on the page,
+  // so window.SANCTUARY_CFG does not exist yet at script-parse time.
+  function supabaseUrl() {
+    var c = window.SANCTUARY_CFG || {};
+    return String(c.supabaseUrl || "").replace(/\/+$/, "");
+  }
+  function anonKey() {
+    var c = window.SANCTUARY_CFG || {};
+    return c.supabaseAnonKey || "";
+  }
 
   var BUCKET_RE = /^(photos|music)\//; // "photos/site/cover.jpg"
   var SIGN_TTL = 86400;                // signed-url lifetime (24h — survives a long film night)
@@ -94,24 +101,25 @@
 
   // ---------- 2. signed-url minting (private photos bucket) ----------
   function signPath(path) {
-    if (!TOKEN || !supabaseUrl) {
+    var base = supabaseUrl();
+    if (!TOKEN || !base) {
       // No session yet (or Supabase down): return the bare object URL.
       // The browser will fail this request; warm(jwt) re-primes after login.
-      return Promise.resolve(supabaseUrl + "/storage/v1/object/" + path);
+      return Promise.resolve(base + "/storage/v1/object/" + path);
     }
-    return fetch(supabaseUrl + "/storage/v1/object/sign/" + path, {
+    return fetch(base + "/storage/v1/object/sign/" + path, {
       method: "POST",
-      headers: { apikey: anonKey, Authorization: "Bearer " + TOKEN, "Content-Type": "application/json" },
+      headers: { apikey: anonKey(), Authorization: "Bearer " + TOKEN, "Content-Type": "application/json" },
       body: JSON.stringify({ expiresIn: SIGN_TTL })
     }).then(function (r) {
       if (!r.ok) throw new Error("sign failed: HTTP " + r.status);
       return r.json();
     }).then(function (j) {
-      var u = supabaseUrl + "/storage/v1" + (j.signedURL || ("/object/sign/" + (j.signedPath || path)));
+      var u = base + "/storage/v1" + (j.signedURL || ("/object/sign/" + (j.signedPath || path)));
       urlCache[path] = { url: u, exp: Date.now() + (SIGN_TTL - 120) * 1000 };
       return u;
     }).catch(function () {
-      return supabaseUrl + "/storage/v1/object/" + path; // graceful degradation
+      return base + "/storage/v1/object/" + path; // graceful degradation
     });
   }
 
@@ -124,7 +132,7 @@
       else return Promise.resolve(resolveMedia(url));         // unknown legacy ref
     }
     if (/^(https?:)?\/\//i.test(url) || url.indexOf("data:") === 0) return Promise.resolve(url);
-    if (!BUCKET_RE.test(url) || !supabaseUrl) return Promise.resolve(url);
+    if (!BUCKET_RE.test(url) || !supabaseUrl()) return Promise.resolve(url);
 
     var now = Date.now();
     var hit = urlCache[url];
@@ -132,7 +140,7 @@
     if (inflight[url]) return inflight[url];
 
     if (url.indexOf("music/") === 0) {                        // public bucket: permanent URL
-      var pub = supabaseUrl + "/storage/v1/object/public/" + url;
+      var pub = supabaseUrl() + "/storage/v1/object/public/" + url;
       urlCache[url] = { url: pub, exp: now + 350e3 };
       return Promise.resolve(pub);
     }
