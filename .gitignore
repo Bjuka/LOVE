@@ -1,7 +1,6 @@
 # SANCTUARY · secure edition — secrets & generated files
 .env
 env.js
-codebuff.json
 *.pem
 *.key
 *.token
