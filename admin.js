@@ -89,11 +89,22 @@
       // media resolver (media.js) — maps legacy bare filenames to assets/
       var media = (window.SANCTUARY_MEDIA && window.SANCTUARY_MEDIA.resolve) || function (u) { return u; };
 
+      // fire-and-forget: swap a storage path into an <img> once its (signed) URL resolves
+      function applyMediaUrl(el, url, fallback) {
+        var ref = url || fallback || "photos/site/cover.jpg";
+        if (window.SANCTUARY_MEDIA && window.SANCTUARY_MEDIA.url) {
+          window.SANCTUARY_MEDIA.url(ref).then(function (u) { if (el && u) el.src = u; });
+        } else {
+          el.src = media(ref);
+        }
+      }
+
       function safeImageUrl(url, fallback) {
         var u = String(url || "");
         if (/^https?:\/\//i.test(u)) return u;
+        if (u.indexOf("photos/") === 0 || u.indexOf("music/") === 0) return u; // storage path — resolved async
         if (/^\.?\/?[\w .\/\-]+\.(jpe?g|png|webp|gif)$/i.test(u)) return media(u);
-        return media(fallback || "assets/img/cover.jpg");
+        return media(fallback || "photos/site/cover.jpg");
       }
 
       // MIME + extension + size gate before anything reaches a bucket
@@ -407,20 +418,20 @@
 
     // --- 3. SEED & SYNCHRONIZATION ENGINE ---
     const defaultMemories = [
-      { title: 'What makes me happy?', date: '2026-03-13', tag: 'MINEEE 💍', caption: 'Every moment with you makes me feel special beacause you feel like a long lost part of me which makes me complete 💕💕', image_url: 'assets/img/memory1.jpg' },
-      { title: 'My Cute Babieeee', date: '2025-12-12', tag: 'Special dayyy 🍷', caption: 'Whenever im with you, im never alone. you make me feel so happy like im some celebrity but tbh, i just want to be YOURS ❤️', image_url: 'assets/img/memory2.jpg' },
-      { title: 'Ummmmmah', date: '2026-08-14', tag: 'Goofy Moments 🤪', caption: 'You brings out the kid in me (idk the date😭)', image_url: 'assets/img/memory3.jpg' }
+      { title: 'What makes me happy?', date: '2026-03-13', tag: 'MINEEE 💍', caption: 'Every moment with you makes me feel special beacause you feel like a long lost part of me which makes me complete 💕💕',          image_url: 'photos/site/memory1.jpg' },
+      { title: 'My Cute Babieeee', date: '2025-12-12', tag: 'Special dayyy 🍷', caption: 'Whenever im with you, im never alone. you make me feel so happy like im some celebrity but tbh, i just want to be YOURS ❤️',          image_url: 'photos/site/memory2.jpg' },
+      { title: 'Ummmmmah', date: '2026-08-14', tag: 'Goofy Moments 🤪', caption: 'You brings out the kid in me (idk the date😭)',          image_url: 'photos/site/memory3.jpg' }
     ];
 
     const defaultDreams = [
-      { emoji: '❤️', title: 'My Second Love', tag: 'Our little cuteness', description: 'Our daughter will look like this and we will be the best parents anyone can ever wish for ❤️❤️', image_url: 'assets/img/babieee.jpg' },
-      { emoji: '🌻🌻', title: 'Together and Forever', tag: 'Our Goal', description: 'No matter what happens, we stay together, we fight together and we fix together cuz you\'re my wifey and i love you the most. just like this💕', image_url: 'assets/img/dream2.jpg' }
+      { emoji: '❤️', title: 'My Second Love', tag: 'Our little cuteness', description: 'Our daughter will look like this and we will be the best parents anyone can ever wish for ❤️❤️',      image_url: 'photos/site/babieee.jpg' },
+      { emoji: '🌻🌻', title: 'Together and Forever', tag: 'Our Goal', description: 'No matter what happens, we stay together, we fight together and we fix together cuz you\'re my wifey and i love you the most. just like this💕',      image_url: 'photos/site/dream2.jpg' }
     ];
 
     const defaultSongs = [
-      { title: 'Accidently in LOVE', artist: 'Counting Crows', url: 'assets/audio/accidently-in-love.mp3' },
-      { title: 'Make you MINE', artist: 'PUBLIC', url: 'assets/audio/make-you-mine.mp3' },
-      { title: 'You & I', artist: 'One Direection', url: 'assets/audio/you-and-i.mp3' }
+      { title: 'Accidently in LOVE', artist: 'Counting Crows',      url: 'music/accidently-in-love.mp3' },
+      { title: 'Make you MINE', artist: 'PUBLIC',      url: 'music/make-you-mine.mp3' },
+      { title: 'You & I', artist: 'One Direection',      url: 'music/you-and-i.mp3' }
     ];
 
     const defaultFavoriteView = {
@@ -429,7 +440,7 @@
       sub_tag: '',
       floating_badge: '',
       quote: 'No matter where life takes us, my heart will always beat for you.',
-      image_url: 'assets/img/cover.jpg'
+      image_url: 'photos/site/cover.jpg'
     };
 
     async function runManualSync() {
@@ -468,7 +479,7 @@
         const memTitles = new Set((existingMems || []).map(m => m.title.toLowerCase().trim()));
         const memsToInsert = sourceMems
           .filter(m => !memTitles.has((m.title || '').toLowerCase().trim()))
-          .map(m => ({ title: m.title, date: m.date || new Date().toISOString().split('T')[0], tag: m.tag || 'Memory', caption: m.caption || m.title, image_url: m.image_url || m.image || 'assets/img/memory1.jpg' }));
+          .map(m => ({ title: m.title, date: m.date || new Date().toISOString().split('T')[0], tag: m.tag || 'Memory', caption: m.caption || m.title, image_url: m.image_url || m.image || 'photos/site/memory1.jpg' }));
 
         if (memsToInsert.length > 0) {
           const { error: mErr } = await supabaseClient.from('memories').insert(memsToInsert);
@@ -485,7 +496,7 @@
         const dreamTitles = new Set((existingDreams || []).map(d => d.title.toLowerCase().trim()));
         const dreamsToInsert = sourceDreams
           .filter(d => !dreamTitles.has((d.title || '').toLowerCase().trim()))
-          .map(d => ({ emoji: d.emoji || '✨', title: d.title, tag: d.tag || 'Dream', description: d.description || d.desc || '', image_url: d.image_url || d.image || 'assets/img/babieee.jpg' }));
+          .map(d => ({ emoji: d.emoji || '✨', title: d.title, tag: d.tag || 'Dream', description: d.description || d.desc || '', image_url: d.image_url || d.image || 'photos/site/babieee.jpg' }));
 
         if (dreamsToInsert.length > 0) {
           const { error: dErr } = await supabaseClient.from('dreams').insert(dreamsToInsert);
@@ -533,6 +544,8 @@
     }
 
     // --- 4. CREATE ENTITIES (sanitized · validated · rate-limited) ---
+    // Returns the STORAGE PATH ("photos/memories/…") — private bucket cannot
+    // serve permanent public URLs; media.js signs them at render time.
     async function secureUpload(bucket, subfolder, file, kind) {
       const vErr = SEC.validateFile(file, kind);
       if (vErr) throw new Error("File rejected: " + vErr);
@@ -542,8 +555,7 @@
       const path = `${subfolder}/${SEC.buildFilename(file.name)}`;   // randomized name: no user text in paths
       const { error: upErr } = await supabaseClient.storage.from(bucket).upload(path, file);
       if (upErr) throw upErr;
-      const { data } = supabaseClient.storage.from(bucket).getPublicUrl(path);
-      return data.publicUrl;
+      return `${bucket}/${path}`;
     }
 
     async function handleCreateMemory(e) {
@@ -554,7 +566,7 @@
       btn.disabled = true;
 
       try {
-        let imageUrl = "assets/img/memory1.jpg";
+        let imageUrl = "photos/site/memory1.jpg";
         const file = document.getElementById('mem-file').files[0];
         if (file) imageUrl = await secureUpload('photos', 'memories', file, 'image');
 
@@ -594,7 +606,7 @@
       btn.disabled = true;
 
       try {
-        let imageUrl = "assets/img/babieee.jpg";
+        let imageUrl = "photos/site/babieee.jpg";
         const file = document.getElementById('dream-file').files[0];
         if (file) imageUrl = await secureUpload('photos', 'dreams', file, 'image');
 
@@ -742,7 +754,7 @@
         fileInput.accept = "image/*";
         mediaSection.classList.remove('hidden');
 
-        currentPreviewImg.src = SEC.safeImageUrl(record.image_url, 'assets/img/memory1.jpg');
+        applyMediaUrl(currentPreviewImg, record.image_url, 'photos/site/memory1.jpg');
         currentPreviewImg.style.opacity = 1;
         currentPreviewBox.classList.remove('hidden');
 
@@ -760,7 +772,7 @@
         fileInput.accept = "image/*";
         mediaSection.classList.remove('hidden');
 
-        currentPreviewImg.src = SEC.safeImageUrl(record.image_url, 'assets/img/babieee.jpg');
+        applyMediaUrl(currentPreviewImg, record.image_url, 'photos/site/babieee.jpg');
         currentPreviewImg.style.opacity = 1;
         currentPreviewBox.classList.remove('hidden');
 
@@ -790,7 +802,7 @@
         fileInput.accept = "image/*";
         mediaSection.classList.remove('hidden');
 
-        currentPreviewImg.src = SEC.safeImageUrl(record.image_url, 'assets/img/cover.jpg');
+        applyMediaUrl(currentPreviewImg, record.image_url, 'photos/site/cover.jpg');
         currentPreviewImg.style.opacity = 1;
         currentPreviewBox.classList.remove('hidden');
 
@@ -860,7 +872,7 @@
           };
         } else if (tableKey === 'songs') {
           const songUrl = file ? mediaUrl : SEC.sanitizeText(document.getElementById('edit-song-url').value, 400);
-          if (songUrl && !/^(https?:\/\/|[\w .\/\-]+\.mp3$)/i.test(songUrl)) throw new Error("Audio source must be an https URL or a local .mp3 path.");
+          if (songUrl && !/^(https?:\/\/|music\/|[\w .\/\-]+\.mp3$)/i.test(songUrl)) throw new Error("Audio source must be an https URL, a storage path (music/…), or a local .mp3 path.");
           updatePayload = {
             title: SEC.sanitizeText(document.getElementById('edit-song-title').value),
             artist: SEC.sanitizeText(document.getElementById('edit-song-artist').value, 120),
@@ -926,6 +938,7 @@
 
       // 1. Memories
       const { data: mems } = await supabaseClient.from('memories').select('*').order('date', { ascending: false });
+      if (window.SANCTUARY_MEDIA_URLS && mems) await window.SANCTUARY_MEDIA_URLS(mems, 'image_url');
       currentCache.memories = mems || [];
       document.getElementById('stat-memories').textContent = currentCache.memories.length;
       document.getElementById('list-memories').innerHTML = currentCache.memories.map(m => {
@@ -985,6 +998,7 @@
 
       // 4. Favorite Views
       const { data: views } = await supabaseClient.from('favorite_views').select('*').order('created_at', { ascending: true });
+      if (window.SANCTUARY_MEDIA_URLS && views) await window.SANCTUARY_MEDIA_URLS(views, 'image_url');
       currentCache.views = views || [];
       document.getElementById('stat-views').textContent = currentCache.views.length;
       document.getElementById('list-views').innerHTML = currentCache.views.map(v => {
@@ -992,7 +1006,7 @@
         return `
         <div class="row">
           <div class="row-main">
-            <img src="${SEC.escapeAttr(SEC.safeImageUrl(v.image_url, 'assets/img/cover.jpg'))}" class="row-thumb" alt="" />
+            <img data-media-ref="${SEC.escapeAttr(v.image_url || 'photos/site/cover.jpg')}" class="row-thumb" alt="" />
             <div style="min-width:0">
               <span class="row-title" style="display:block">${SEC.escapeHtml(v.badge)}</span>
               <span class="row-meta" style="display:block">${SEC.escapeHtml(v.date || 'Today')}${v.sub_tag ? ' • ' + SEC.escapeHtml(v.sub_tag) : ''} • "${SEC.escapeHtml(v.quote)}"</span>
@@ -1031,9 +1045,20 @@
       document.addEventListener('error', function (e) {
         const t = e.target;
         if (t && t.classList && t.classList.contains('row-thumb') && t.src.indexOf('cover.jpg') === -1) {
-          t.src = 'assets/img/cover.jpg';
+          applyMediaUrl(t, null, 'photos/site/cover.jpg');
         }
       }, true);
+
+      // resolve data-media-ref images (storage paths → signed/public URLs)
+      function hydrateMediaRefs(root) {
+        (root || document).querySelectorAll('img[data-media-ref]').forEach(img => {
+          if (img.dataset.mediaDone) return;
+          img.dataset.mediaDone = '1';
+          applyMediaUrl(img, img.getAttribute('data-media-ref'), null);
+        });
+      }
+      const _origRefresh = refreshData;
+      refreshData = async function () { await _origRefresh(); hydrateMediaRefs(document); };
 
       // gate + session
       $('admin-login-form').addEventListener('submit', handleAdminLogin);

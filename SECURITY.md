@@ -101,7 +101,7 @@ The browser is cosmetic. The database is the boundary — run `supabase-policies
 - **Viewers (authenticated)**: SELECT only.
 - **Admin (authenticated + `app_metadata.role = 'admin'`)**: INSERT / UPDATE / DELETE, re-validated server-side.
 - **Anon**: nothing — the film only loads for a signed-in tab.
-- Storage buckets: read for signed-in users, **uploads only for the admin**, MIME allow-lists and size caps enforced.
+- Storage: `photos` bucket is **private** — reads require a signed-in session and are served via short-lived signed URLs minted with the user's JWT (`media.js`); `music` is public (playlist only). **Uploads only for the admin**, MIME allow-lists and size caps enforced.
 
 ## If the secret scanner flags git history
 
@@ -110,6 +110,19 @@ The browser is cosmetic. The database is the boundary — run `supabase-policies
 1. **Rotate first, clean second.** Supabase → Settings → API → regenerate the anon key, and change the shared password. Once a key is leaked in history, assume it's public.
 2. If this repo has **never been pushed** anywhere, you can rewrite history (`git filter-repo --replace-text`) or start a fresh repo.
 3. If it **was** pushed, do NOT rely on deletion — rotate the credentials. That's the only real fix.
+
+## Media binaries & git history
+
+All photos/audio live in Supabase Storage (`photos/site/*`, `music/*`) — the repo ships no binary media. `.gitignore` blocks `assets/img/` and `assets/audio/` so they can't be re-committed by accident.
+
+If media ever ends up in history again (repo must go public!):
+
+1. `node scripts/purge-media-history.mjs` — rewrites every commit to drop `assets/img/*` + `assets/audio/*` (pure Node, no extra deps).
+2. `git push --force origin main` — the rewrite invalidates old SHAs.
+3. Re-clone everywhere; old clones still contain the blobs.
+4. Backups taken before the rewrite: `love-backup-*.bundle` + `love-backup-*-worktree.tar.gz` (kept OUTSIDE the repo — they contain the binaries).
+
+The service key used for `scripts/upload-to-storage.mjs` is passed via env var only — never stored, never committed.
 
 ## Honest limitations (a personal gift site, not a bank)
 

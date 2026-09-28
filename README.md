@@ -22,7 +22,7 @@ Plus: film grain + vignette overlay, a fixed "film chrome" bar showing the curre
 - **GSAP + ScrollTrigger** — pinned scenes, scrubbed animations, horizontal scroll section, parallax
 - **Lenis** — smooth inertial scrolling
 - **Vanilla JS + CSS** — no frameworks, no Tailwind, no icon CDNs (site *and* admin)
-- **Supabase** — same tables as before: `favorite_views`, `memories`, `dreams`, `songs`; storage buckets `photos` / `music`
+- **Supabase** — same tables as before: `favorite_views`, `memories`, `dreams`, `songs`; storage buckets `photos` (private) / `music` (public). **All photos & audio live in Supabase Storage — the repo contains zero binary media files.**
 - All content has local fallbacks, so the site works even if Supabase is unreachable
 
 ## Editing your site (no more typing /admin.html)
@@ -42,15 +42,14 @@ See `SECURITY.md` for creating the three users and setting their roles in Supaba
 ├── style.css          # bespoke cinematic theme (no Tailwind)
 ├── script.js          # gate, Lenis, GSAP story, Supabase loaders, player
 ├── auth.js            # shared Supabase Auth layer (3 named logins · viewer vs admin roles)
-├── media.js           # media path resolver (legacy names → assets/)
+├── media.js           # Storage media loader (storage paths → signed/public URLs)
 ├── whimsy.js          # heart trail, petal rain, aurora, polaroid corners
 ├── admin.html         # control room (CRUD, uploads, sync) — same design system
 ├── admin.js           # hardened admin logic
 ├── config.js / env.js # runtime config (env.js is gitignored — never commit it)
-├── assets/
-│   ├── img/           # all photos (cover, memories, dreams, polaroids)
-│   └── audio/         # soundtrack fallbacks (slugged filenames)
+├── assets/            # EMPTY (media lives in Supabase Storage — never re-commit binaries)
 ├── api/               # generate-env · check-secrets · optional edge config
+├── scripts/           # upload-to-storage.mjs (migration) · purge-media-history.mjs
 ├── vendor/            # local GSAP, ScrollTrigger, Lenis, Supabase (no CDN)
 ├── supabase-policies.sql  # RLS pack — run in the Supabase SQL Editor
 ├── vercel.json        # security headers + media caching
@@ -59,6 +58,8 @@ See `SECURITY.md` for creating the three users and setting their roles in Supaba
 
 ## Notes
 
+- Media is served from Supabase Storage: photos = private bucket + short-lived signed URLs (needs a signed-in session — the gate), music = public bucket
+- `scripts/upload-to-storage.mjs` = one-time migration (repo → Storage); keep a personal copy of the original files somewhere safe (the repo no longer has them)
 - Passcode check is client-side SHA-256 — fine for a personal surprise, not real security
 - Animations respect `prefers-reduced-motion`
 - Deploy anywhere static (it was set up for Vercel before — still works)

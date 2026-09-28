@@ -1,0 +1,73 @@
+# ============================================================
+# SANCTUARY · Supabase keep-alive
+# ------------------------------------------------------------
+# Supabase pauses FREE-tier projects after 7 days of no API
+# activity. This workflow pings the project once a day so the
+# inactivity timer never runs out — no Pro plan needed.
+#
+# How it works:
+#   • REST ping  → touches PostgREST + Postgres (counts as DB
+#     activity). HTTP 401/403 is EXPECTED here: the site's RLS
+#     correctly blocks anonymous reads. Any response = alive.
+#   • Auth ping  → verifies the auth service responds too.
+#
+# If the project ever becomes unreachable (paused or broken),
+# the job FAILS and GitHub emails you — restore with one click
+# in the Supabase dashboard:  https://supabase.com/dashboard
+#
+# ⚠ GitHub auto-disables scheduled workflows after ~60 days of
+#   no commits in the repo (they email you first). If that
+#   happens: push any commit, or just re-run this workflow from
+#   the Actions tab (it can always be triggered manually).
+#
+# Note: the URL + publishable key below are PUBLIC values —
+# they already ship to every visitor's browser via env.js —
+# so committing them here is safe.
+# ============================================================
+
+name: Supabase keep-alive
+
+on:
+  schedule:
+    # Daily at 03:17 UTC (odd minute = avoids top-of-hour GitHub load)
+    - cron: "17 3 * * *"
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    # URL + publishable key come from repo secrets when set (public-repo
+    # hygiene). Both values are publishable anyway, so the fallbacks below
+    # are safe — but secrets keep them out of forks/logs.
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://idlhbjoxxskzmvzrhjpb.supabase.co' }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_0NiaQQkwoIcttLrvBEzAqg_t5vaBgAY' }}
+    steps:
+      - name: Ping REST API (real DB activity)
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            "$SUPABASE_URL/rest/v1/memories?select=*&limit=1")
+          echo "REST responded with HTTP $code"
+          case "$code" in
+            200|401|403)
+              echo "Project is awake (RLS blocked anon read as expected — still counts as activity)"
+              ;;
+            *)
+              echo "::error::Unexpected HTTP $code from REST — project may be PAUSED or broken. Restore it at https://supabase.com/dashboard"
+              exit 1
+              ;;
+          esac
+
+      - name: Ping Auth service
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            "$SUPABASE_URL/auth/v1/health")
+          echo "Auth health responded with HTTP $code"
+          case "$code" in
+            200) echo "Auth service healthy" ;;
+            *)   echo "::error::Auth health returned HTTP $code — project may be PAUSED. Restore it at https://supabase.com/dashboard"; exit 1 ;;
+          esac

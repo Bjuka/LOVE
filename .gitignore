@@ -7,6 +7,14 @@ codebuff.json
 *.token
 .tokens/
 
+# Media binaries live in Supabase Storage now (scripts/upload-to-storage.mjs).
+# Never re-commit photos/audio into the repo — especially not for a public repo.
+assets/img/
+assets/audio/
+
+# Migration-local secrets
+scripts/.service-key
+
 # Backups / archives that might contain secrets
 *.zip
 *.tar

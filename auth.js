@@ -41,6 +41,15 @@
       })
     : null;
 
+  // keep media.js's signed-url signer in sync with token refreshes
+  if (authClient && window.SANCTUARY_MEDIA && window.SANCTUARY_MEDIA.warm) {
+    try {
+      authClient.auth.onAuthStateChange(function (evt, session) {
+        if (session && session.access_token) window.SANCTUARY_MEDIA.warm(session.access_token);
+      });
+    } catch (eWarm) {}
+  }
+
   // ---------- 2. Session state ----------
   var state = {
     user: null,        // supabase user object when signed in
@@ -121,6 +130,10 @@
         state.role = roleFromUser(user);
         state.label = labelForUser(user);
         state.legacy = false;
+        // prime private-photo signed urls with this session's JWT (media.js)
+        if (window.SANCTUARY_MEDIA && window.SANCTUARY_MEDIA.warm) {
+          try { window.SANCTUARY_MEDIA.warm(res.data.session && res.data.session.access_token); } catch (e0) {}
+        }
         return { ok: true, identity: { role: state.role, label: state.label, canEdit: self.canEdit() } };
       }).catch(function (err) {
         return { ok: false, error: "network", message: (err && err.message) || "Network error" };
@@ -141,6 +154,10 @@
         state.user = null;
         state.role = null;
         state.label = "guest";
+        // legacy unlock has no JWT — media.js falls back to unsigned object urls
+        if (window.SANCTUARY_MEDIA && window.SANCTUARY_MEDIA.warm) {
+          try { window.SANCTUARY_MEDIA.warm(null); } catch (e0) {}
+        }
         return { ok: true, identity: { role: self.canEdit() ? "admin" : "legacy", label: self.getLabel(), canEdit: self.canEdit() } };
       }).catch(function () {
         return { ok: false, error: "network", message: "Could not verify passcode" };
@@ -188,6 +205,10 @@
         state.role = roleFromUser(session.user);
         state.label = labelForUser(session.user);
         state.legacy = false;
+        // refresh private-photo signed urls for the restored session (media.js)
+        if (window.SANCTUARY_MEDIA && window.SANCTUARY_MEDIA.warm) {
+          try { window.SANCTUARY_MEDIA.warm(session.access_token); } catch (e0) {}
+        }
         return { role: state.role, label: state.label, canEdit: self.canEdit() };
       }).catch(function () { return null; });
     },

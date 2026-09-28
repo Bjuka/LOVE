@@ -64,9 +64,20 @@ async function sha256(message) {
 // ==================== CONTENT (fallbacks mirror DB) ====================
 // media path resolver (media.js) — maps legacy bare filenames to assets/
 var media = (window.SANCTUARY_MEDIA && window.SANCTUARY_MEDIA.resolve) || function (u) { return u; };
+// async Storage loader — binaries now live in Supabase Storage, not the repo
+// resolveMediaUrl(legacy-or-path-or-url) → Promise<fetchable URL>
+function resolveMediaUrl(u) {
+  if (window.SANCTUARY_MEDIA && window.SANCTUARY_MEDIA.url) return window.SANCTUARY_MEDIA.url(u);
+  return Promise.resolve(media(u)); // legacy fallback if media.js failed to load
+}
+// patch every media field on a list of rows (in place) before rendering
+function resolveMediaUrls(list, field) {
+  if (window.SANCTUARY_MEDIA_URLS) return window.SANCTUARY_MEDIA_URLS(list, field);
+  return Promise.resolve(list);
+}
 
 var defaultHeroFallback = {
-  image_url: "assets/img/cover.jpg",
+  image_url: "photos/site/cover.jpg",
   badge: "My Favorite View",
   date: "Today",
   sub_tag: "",
@@ -75,25 +86,25 @@ var defaultHeroFallback = {
 };
 
 var fallbackMemories = [
-  { title: "What makes me happy?", date: "2026-03-13", tag: "MINEEE 💍", image: "assets/img/memory1.jpg",
+  { title: "What makes me happy?", date: "2026-03-13", tag: "MINEEE 💍", image: "photos/site/memory1.jpg",
     caption: "Every moment with you makes me feel special beacause you feel like a long lost part of me which makes me complete 💕💕" },
-  { title: "My Cute Babieeee", date: "2025-12-12", tag: "Special dayyy 🍷", image: "assets/img/memory2.jpg",
+  { title: "My Cute Babieeee", date: "2025-12-12", tag: "Special dayyy 🍷", image: "photos/site/memory2.jpg",
     caption: "Whenever im with you, im never alone. you make me feel so happy like im some celebrity but tbh, i just want to be YOURS ❤️" },
-  { title: "Ummmmmah", date: "2026-08-14", tag: "Goofy Moments 🤪", image: "assets/img/memory3.jpg",
+  { title: "Ummmmmah", date: "2026-08-14", tag: "Goofy Moments 🤪", image: "photos/site/memory3.jpg",
     caption: "You brings out the kid in me (idk the date😭)" }
 ];
 
 var fallbackDreams = [
   { title: "My Second Love", emoji: "❤️", tag: "Our little cuteness",
-    desc: "Our daughter will look like this and we will be the best parents anyone can ever wish for ❤️❤️", image: "assets/img/babieee.jpg" },
+    desc: "Our daughter will look like this and we will be the best parents anyone can ever wish for ❤️❤️", image: "photos/site/babieee.jpg" },
   { title: "Together and Forever", emoji: "🌻🌻", tag: "Our Goal",
-    desc: "No matter what happens, we stay together, we fight together and we fix together cuz you're my wifey and i love you the most. just like this💕", image: "assets/img/dream2.jpg" }
+    desc: "No matter what happens, we stay together, we fight together and we fix together cuz you're my wifey and i love you the most. just like this💕", image: "photos/site/dream2.jpg" }
 ];
 
 var fallbackSongs = [
-  { title: "Accidently in LOVE", artist: "Counting Crows", src: "assets/audio/accidently-in-love.mp3" },
-  { title: "Make you MINE", artist: "PUBLIC", src: "assets/audio/make-you-mine.mp3" },
-  { title: "You & I", artist: "One Direection", src: "assets/audio/you-and-i.mp3" }
+  { title: "Accidently in LOVE", artist: "Counting Crows", src: "music/accidently-in-love.mp3" },
+  { title: "Make you MINE", artist: "PUBLIC", src: "music/make-you-mine.mp3" },
+  { title: "You & I", artist: "One Direection", src: "music/you-and-i.mp3" }
 ];
 
 var wholesomeAffirmations = [
@@ -313,6 +324,7 @@ var viewAutoTimer = null;
 async function loadFavoriteViews() {
   favoriteViews = await fetchTable("favorite_views", "created_at", true, function (v) { return v; }, favoriteViews);
   if (!favoriteViews.length) favoriteViews = [defaultHeroFallback];
+  await resolveMediaUrls(favoriteViews, "image_url"); // signed photo urls before paint
   renderHeroStack();
 }
 
@@ -406,8 +418,9 @@ async function fetchTable(table, orderCol, ascending, mapRow, fallback) {
 async function loadMemories() {
   var memories = await fetchTable("memories", "date", false, function (m) {
     return { title: m.title, date: m.date, tag: m.tag || "Memory",
-             image: m.image_url || "assets/img/memory1.jpg", caption: m.caption || m.title };
+             image: m.image_url || "photos/site/memory1.jpg", caption: m.caption || m.title };
   }, fallbackMemories);
+  await resolveMediaUrls(memories, "image");
   renderMemories(memories);
 }
 
@@ -438,8 +451,9 @@ function renderMemories(memories) {
 async function loadDreams() {
   var dreams = await fetchTable("dreams", "created_at", false, function (d) {
     return { title: d.title, emoji: d.emoji || "✨", tag: d.tag || "Dream",
-             desc: d.description || "", image: d.image_url || "assets/img/babieee.jpg" };
+             desc: d.description || "", image: d.image_url || "photos/site/babieee.jpg" };
   }, fallbackDreams);
+  await resolveMediaUrls(dreams, "image");
   renderDreams(dreams);
 }
 
@@ -465,22 +479,23 @@ function renderDreams(dreams) {
 // changes them. The polaroid photo simply changes whenever the quote does:
 // one photo per quote, cycling through the reel.
 var notePolaroids = [
-  { src: "assets/img/biryani.jpg", tilt: -4 },
-  { src: "assets/img/red-hat.jpg", tilt: 3 },
-  { src: "assets/img/cute-stuff.jpg", tilt: -3 },
-  { src: "assets/img/park.jpg", tilt: 4 },
-  { src: "assets/img/noice.jpg", tilt: -5 },
-  { src: "assets/img/yellow-hat.jpg", tilt: 2 }
+  { src: "photos/site/biryani.jpg", tilt: -4 },
+  { src: "photos/site/red-hat.jpg", tilt: 3 },
+  { src: "photos/site/cute-stuff.jpg", tilt: -3 },
+  { src: "photos/site/park.jpg", tilt: 4 },
+  { src: "photos/site/noice.jpg", tilt: -5 },
+  { src: "photos/site/yellow-hat.jpg", tilt: 2 }
 ];
 
 var polaroidReelBuilt = false;
 
-function buildPolaroidReel() {
+async function buildPolaroidReel() {
   var reel = document.getElementById("polaroid-reel");
   if (!reel || polaroidReelBuilt) return;
+  await resolveMediaUrls(notePolaroids, "src"); // signed urls before building
   reel.innerHTML = notePolaroids.map(function (p, i) {
     return '<div class="polaroid-slide' + (i === 0 ? " is-current" : "") + '">' +
-      '<img src="' + escapeHtml(media(p.src)) + '" alt="" />' +
+      '<img src="' + escapeHtml(p.src) + '" alt="" />' +
       "</div>";
   }).join("");
   polaroidReelBuilt = true;
@@ -488,7 +503,9 @@ function buildPolaroidReel() {
 
 // warm the image cache so photo swaps never flash empty
 function preloadNotePolaroids() {
-  notePolaroids.forEach(function (p) { var im = new Image(); im.src = p.src; });
+  notePolaroids.forEach(function (p) {
+    resolveMediaUrl(p.src).then(function (u) { var im = new Image(); im.src = u; });
+  });
 }
 
 // polaroid photo changes whenever the quote changes (one photo per quote, cycling)
@@ -566,8 +583,10 @@ function playTrack(i) {
   if (!player.queue[i]) return;
   player.index = i;
   var s = player.queue[i];
-  player.audio.src = media(s.src);
-  player.audio.play().then(function () {
+  resolveMediaUrl(s.src).then(function (u) {
+    player.audio.src = u;
+    return player.audio.play();
+  }).then(function () {
     player.playing = true;
     syncPlayUI();
   }).catch(function () {
@@ -955,11 +974,14 @@ function startExperience() {
 
   // finale photo collage
   var finale = document.getElementById("finale-photos");
-  var srcs = ["assets/img/memory1.jpg", "assets/img/memory2.jpg", "assets/img/memory3.jpg", "assets/img/cover.jpg", "assets/img/biryani.jpg", "assets/img/cute-stuff.jpg", "assets/img/noice.jpg", "assets/img/park.jpg", "assets/img/red-hat.jpg", "assets/img/yellow-hat.jpg"];
+  var srcs = ["photos/site/memory1.jpg", "photos/site/memory2.jpg", "photos/site/memory3.jpg", "photos/site/cover.jpg", "photos/site/biryani.jpg", "photos/site/cute-stuff.jpg", "photos/site/noice.jpg", "photos/site/park.jpg", "photos/site/red-hat.jpg", "photos/site/yellow-hat.jpg"];
   if (finale && !finale.childElementCount) {
-    finale.innerHTML = srcs.map(function (s) {
-      return '<div class="finale-photo"><img src="' + s + '" alt="" loading="lazy" /></div>';
-    }).join("");
+    resolveMediaUrls(srcs).then(function (resolved) {
+      finale.innerHTML = resolved.map(function (s) {
+        return '<div class="finale-photo"><img src="' + escapeHtml(s) + '" alt="" loading="lazy" /></div>';
+      }).join("");
+      refreshTriggers();
+    });
   }
 
   // hero title entrance — immediately, never wait on the network
