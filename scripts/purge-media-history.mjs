@@ -77,10 +77,19 @@ ex.on("close", code => {
       if (src[p] === 0x0a) { out.push(Buffer.from([0x0a])); p++; }
       continue;
     }
-    if (text.startsWith("M ")) {
-      // Format: M <mode> <40-hex-sha|:<mark>> <path…spaces allowed…>
-      const m = text.match(/^M \d+ (?:[0-9a-f]{40}|:\d+) (.+)$/);
-      const pathToken = m ? m[1] : text.slice(text.lastIndexOf(" ") + 1);
+    if (text.startsWith("M ") || text.startsWith("D ")) {
+      // M <mode> <40-hex-sha|:<mark>> <path>   |   D <path>
+      // fast-export C-quotes paths with spaces/specials: "Accidently in Love.mp3"
+      let pathToken;
+      if (text.startsWith("M ")) {
+        const m = text.match(/^M \d+ (?:[0-9a-f]{40}|:\d+) (.+)$/);
+        pathToken = m ? m[1] : text.slice(text.lastIndexOf(" ") + 1);
+      } else {
+        pathToken = text.slice(2);
+      }
+      if (pathToken.startsWith('"') && pathToken.endsWith('"')) {
+        try { pathToken = JSON.parse(pathToken); } catch { pathToken = pathToken.slice(1, -1); }
+      }
       if (KILL_RE.test(pathToken)) { stripped++; p = nl + 1; continue; }
     }
     out.push(line, Buffer.from([0x0a]));
