@@ -12,6 +12,11 @@ codebuff.json
 assets/img/
 assets/audio/
 
+# One-time migration tools — kept locally for reference, never published
+# (upload-to-storage.mjs = repo→Storage migration, done;
+#  purge-media-history.mjs = recovery tool if media ever re-lands in git)
+scripts/
+
 # Migration-local secrets
 scripts/.service-key
 
