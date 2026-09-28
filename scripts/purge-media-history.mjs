@@ -25,7 +25,9 @@
    ============================================================ */
 import { spawn, spawnSync } from "node:child_process";
 
-const KILL_RE = /^assets\/(img|audio)\//i; // file paths to erase from history
+// ANY media binary anywhere in history (repo had root-level files in early
+// commits AND assets/img|audio later; no legit media lives anywhere else)
+const KILL_RE = /\.(jpe?g|png|webp|gif|mp3|wav|m4a)$/i;
 
 function git(args, opts = {}) {
   const r = spawnSync("git", args, { encoding: "utf8", ...opts });
